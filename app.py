@@ -17,8 +17,24 @@ from module.ProgressHelper import ProgressHelper
 from module.TestHelper import TestHelper
 from module.FileManager import FileManager
 
+import argparse
+import time
+
+
 # 定义常量  实体词语的置信度阈值
 SCORE_THRESHOLD = 0.60
+
+
+# 格式化时间
+def format_duration(seconds: float) -> str:
+    if seconds < 60:
+        return f"{int(seconds)} 秒"
+    minutes, seconds = divmod(seconds, 60)
+    if minutes < 60:
+        return f"{int(minutes)} 分 {int(seconds)} 秒"
+    hours, minutes = divmod(minutes, 60)
+    return f"{int(hours)} 时 {int(minutes)} 分 {int(seconds)} 秒"
+
 
 # 合并词语
 def merge_words(words: list[Word]) -> list[Word]:
@@ -32,7 +48,7 @@ def merge_words(words: list[Word]) -> list[Word]:
         word.score = min(0.9999, max(w.score for w in v))
         words_merged.append(word)
 
-    return sorted(words_merged, key = lambda x: x.count, reverse = True)
+    return sorted(words_merged, key=lambda x: x.count, reverse=True)
 
 # 搜索参考文本，并按出现次数排序
 def search_for_context(words: list[Word], input_lines: list[str]) -> list[Word]:
@@ -88,11 +104,13 @@ def remove_words_by_type(words: list[Word], group: str) -> list[Word]:
 
 # 开始处理文本
 async def process_text(llm: LLM, ner: NER, file_manager: FileManager, config: SimpleNamespace, language: int) -> None:
+    start_time = time.time()
+
     # 初始化
     words = []
 
     # 读取输入文件
-    input_lines, names, nicknames = file_manager.read_lines_from_input_file(language)
+    input_lines, names, nicknames = file_manager.read_lines_from_input_file(config.input, language)
 
     # 查找实体词语
     LogHelper.info("即将开始执行 [查找实体词语] ...")
@@ -156,13 +174,12 @@ async def process_text(llm: LLM, ner: NER, file_manager: FileManager, config: Si
 
     # 将结果写入文件
     LogHelper.info("")
-    file_manager.write_result_to_file(words, language)
+    file_manager.write_result_to_file(config.output, words, language)
 
     # 等待用户退出
     LogHelper.info("")
-    LogHelper.info("工作流程已结束 ... 请检查生成的数据文件 ...")
-    LogHelper.info("")
-    LogHelper.info("")
+    LogHelper.info(f"工作流程已结束，耗时 {format_duration(time.time() - start_time)} ，请检查输出的数据文件 ...")
+
     # os.system("pause")
 
 # 接口测试
@@ -179,9 +196,10 @@ async def test_api(llm: LLM) -> None:
         LogHelper.warning("接口测试 [red]执行失败[/], 请检查配置文件 ...")
 
     LogHelper.print("")
-    os.system("pause")
-    os.system("cls")
+    # os.system("pause")
+    # os.system("cls")
 
+# 此函数暂时屏蔽
 # 打印应用信息
 def print_app_info(config: SimpleNamespace, version: str) -> None:
     LogHelper.print()
@@ -220,11 +238,11 @@ def print_app_info(config: SimpleNamespace, version: str) -> None:
         table.add_row(*row)
     LogHelper.print(table)
 
-    LogHelper.print()
-    LogHelper.print("请编辑 [green]config.json[/] 文件来修改应用设置 ...")
+    LogHelper.print("请编辑 [green]config.json[/] 文件来修改上表中的设置")
     LogHelper.print()
 
 # 打印菜单
+# 此函数暂时弃用
 def print_menu_main() -> int:
     LogHelper.print("请选择功能：")
     LogHelper.print("")
@@ -246,24 +264,24 @@ def print_menu_main() -> int:
 
 # 主函数
 async def begin(llm: LLM, ner: NER, file_manager: FileManager, config: SimpleNamespace, version: str) -> None:
-    choice = -1
-    while choice not in (1, 2, 3, 4):
-        print_app_info(config, version)
+    
+    # 暂时屏蔽运行时参数展示
+    # print_app_info(config, version)
 
-        choice = print_menu_main()
-        if choice == 1:
-            await process_text(llm, ner, file_manager, config, NER.Language.ZH)
-        elif choice == 2:
-            await process_text(llm, ner, file_manager, config, NER.Language.EN)
-        elif choice == 3:
-            await process_text(llm, ner, file_manager, config, NER.Language.JA)
-        elif choice == 4:
-            await process_text(llm, ner, file_manager, config, NER.Language.KO)
-        elif choice == 5:
-            await test_api(llm)
+    # choice = print_menu_main()
+    if config.task == 1:
+        await process_text(llm, ner, file_manager, config, NER.Language.ZH)
+    elif config.task == 2:
+        await process_text(llm, ner, file_manager, config, NER.Language.EN)
+    elif config.task == 3:
+        await process_text(llm, ner, file_manager, config, NER.Language.JA)
+    elif config.task == 4:
+        await process_text(llm, ner, file_manager, config, NER.Language.KO)
+    elif config.task == 5:
+        await test_api(llm)
 
 # 一些初始化步骤
-def load_config() -> tuple[LLM, NER, FileManager, SimpleNamespace, str]:
+def load_config(args) -> tuple[LLM, NER, FileManager, SimpleNamespace, str]:
     with LogHelper.status("正在初始化 [green]KG[/] 引擎 ..."):
         config = SimpleNamespace()
         version = ""
@@ -286,6 +304,11 @@ def load_config() -> tuple[LLM, NER, FileManager, SimpleNamespace, str]:
         except Exception:
             LogHelper.error("配置文件读取失败 ...")
 
+        # 如果有，用命令行参数覆盖配置文件中的设置
+        for k, v in vars(args).items():
+            if v != None:
+                setattr(config, k, v)
+
         # 初始化 LLM 对象
         llm = LLM(config)
         llm.load_prompt()
@@ -301,13 +324,13 @@ def load_config() -> tuple[LLM, NER, FileManager, SimpleNamespace, str]:
     return llm, ner, file_manager, config, version
 
 # 确保程序出错时可以捕捉到错误日志
-async def main() -> None:
+async def main(args) -> None:
     try:
         # 注册全局异常追踪器
         install()
 
         # 加载配置
-        llm, ner, file_manager, config, version = load_config()
+        llm, ner, file_manager, config, version = load_config(args)
 
         # 开始处理
         await begin(llm, ner, file_manager, config, version)
@@ -322,8 +345,18 @@ async def main() -> None:
         LogHelper.error("出现严重错误，程序即将退出，错误信息已保存至日志文件 [green]KeywordGacha.log[/] ...")
         LogHelper.print()
         LogHelper.print()
-        os.system("pause")
+        # os.system("pause")
 
 # 入口函数
 if __name__ == "__main__":
-    asyncio.run(main())
+    parser = argparse.ArgumentParser(prog="app")
+    parser.add_argument(
+        "--task",
+        type=int,
+        choices=[1, 2, 3, 4, 5],
+        help="任务类型：1 - 中文文本，2 - 英文文本，3 - 日文文本，4 - 韩文文本，5 - 接口测试",
+    )
+    parser.add_argument("--input", type=str, help="输入文件夹")
+    # parser.add_argument("--output", type=str, help="输出文件夹") # 前往 config.json 修改
+    args = parser.parse_args()
+    asyncio.run(main(args))

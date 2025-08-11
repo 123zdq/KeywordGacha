@@ -108,23 +108,15 @@ class FileManager():
         ]
 
     # 从输入文件中加载数据
-    def read_lines_from_input_file(self, language: int) -> tuple[list, dict[int, str], dict[int, str]]:
+    def read_lines_from_input_file(self, input_path:str, language: int) -> tuple[list, dict[int, str], dict[int, str]]:
+        self.input_path = input_path
+        
         # 依次读取每个数据文件
         with LogHelper.status("正在读取输入文件 ..."):
-            lines = self.read_from_path("input")
+            lines = self.read_from_path(self.input_path)
 
-        """
-        # 分别处理找到和没找到的情况
-        if len(lines) == 0:
-            self.input_path = LogHelper.input("请输入数据文件的路径: ").strip('"')
-        else:
-            user_input = LogHelper.input(f"已在 [green]input[/] 路径下找到数据 [green]{len(lines)}[/] 条，按回车直接使用或输入其他路径：").strip('"')
-            self.input_path = user_input if user_input != "" else "input"
-        LogHelper.print("")
-        """
-
-        self.input_path = "input"
-
+        LogHelper.info(f"已在 [green]{self.input_path}[/] 路径下找到数据 [green]{len(lines)}[/] 条")
+        
         # 尝试从输入路径的同级路径或者下级路径加载角色数据，找不到则生成伪数据
         names, nicknames = {}, {}
         if os.path.isfile(f"{self.input_path}/Actors.json"):
@@ -134,7 +126,6 @@ class FileManager():
 
         # 依次读取每个数据文件
         with LogHelper.status("正在检查输入文件 ..."):
-            # if self.input_path != "input": lines = self.read_from_path(self.input_path)
 
             lines_filtered = []
             for line in lines:
@@ -257,15 +248,15 @@ class FileManager():
         LogHelper.info(f"结果已写入 - [green]{path}[/]")
 
     # 将结果写入文件
-    def write_result_to_file(self, words: list[Word], language: int) -> None:
+    def write_result_to_file(self, output_path: str, words: list[Word], language: int) -> None:
         # 获取输出路径
-        os.makedirs("output", exist_ok = True)
+        os.makedirs(output_path, exist_ok = True)
         file_name, _ = os.path.splitext(os.path.basename(self.input_path))
 
         # 清理一下
         [
             os.remove(entry.path)
-            for entry in os.scandir("output")
+            for entry in os.scandir(output_path)
             if entry.is_file() and f"{file_name}_" in entry.path
         ]
 
@@ -277,7 +268,7 @@ class FileManager():
                 continue
 
             # 写入文件
-            prefix = f"output/{file_name}_{group}"
+            prefix = f"{output_path}/{file_name}_{group}"
             self.write_log_to_file(words_by_type, f"{prefix}_日志.txt", language)
             self.write_glossary_to_json_file(words_by_type, f"{prefix}_术语表.json", language)
             self.write_glossary_to_xlsx_file(words_by_type, f"{prefix}_术语表.xlsx", language)
