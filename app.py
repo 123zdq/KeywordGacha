@@ -17,7 +17,7 @@ from module.ProgressHelper import ProgressHelper
 from module.TestHelper import TestHelper
 from module.FileManager import FileManager
 
-# 定义常量
+# 定义常量  实体词语的置信度阈值
 SCORE_THRESHOLD = 0.60
 
 # 合并词语
@@ -163,7 +163,7 @@ async def process_text(llm: LLM, ner: NER, file_manager: FileManager, config: Si
     LogHelper.info("工作流程已结束 ... 请检查生成的数据文件 ...")
     LogHelper.info("")
     LogHelper.info("")
-    os.system("pause")
+    # os.system("pause")
 
 # 接口测试
 async def test_api(llm: LLM) -> None:

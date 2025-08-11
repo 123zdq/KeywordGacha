@@ -113,6 +113,7 @@ class FileManager():
         with LogHelper.status("正在读取输入文件 ..."):
             lines = self.read_from_path("input")
 
+        """
         # 分别处理找到和没找到的情况
         if len(lines) == 0:
             self.input_path = LogHelper.input("请输入数据文件的路径: ").strip('"')
@@ -120,6 +121,9 @@ class FileManager():
             user_input = LogHelper.input(f"已在 [green]input[/] 路径下找到数据 [green]{len(lines)}[/] 条，按回车直接使用或输入其他路径：").strip('"')
             self.input_path = user_input if user_input != "" else "input"
         LogHelper.print("")
+        """
+
+        self.input_path = "input"
 
         # 尝试从输入路径的同级路径或者下级路径加载角色数据，找不到则生成伪数据
         names, nicknames = {}, {}
@@ -129,9 +133,8 @@ class FileManager():
             names, nicknames = self.load_names(f"{os.path.dirname(self.input_path)}/Actors.json")
 
         # 依次读取每个数据文件
-        with LogHelper.status("正在读取输入文件 ..."):
-            if self.input_path != "input":
-                lines = self.read_from_path(self.input_path)
+        with LogHelper.status("正在检查输入文件 ..."):
+            # if self.input_path != "input": lines = self.read_from_path(self.input_path)
 
             lines_filtered = []
             for line in lines:
