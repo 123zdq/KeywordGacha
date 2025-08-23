@@ -252,11 +252,14 @@ class LLM:
                     x = [v for group in LLM.GROUP_MAPPING.values() for v in group]
                     y = [v for group in LLM.GROUP_MAPPING_BANNED.values() for v in group]
                     self.prompt_groups = x + y
+                    self.surface_analysis_config["extra_body"]["guided_json"]["properties"]["group"]["enum"] = self.prompt_groups 
 
                 if self.language != NER.Language.ZH:
                     prompt = self.prompt_surface_analysis_with_translation
                 else:
                     prompt = self.prompt_surface_analysis_without_translation
+                    del self.surface_analysis_config["extra_body"]["guided_json"]["properties"]["translation"]
+                    self.surface_analysis_config["extra_body"]["guided_json"]["required"].pop()
 
                 error, usage, _, response_result, llm_request, llm_response = await self.do_request(
                     [
