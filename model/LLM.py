@@ -26,7 +26,7 @@ class LLM:
         TRANSLATE_CONTEXT: int = 300         # 翻译参考文本
 
     # 最大重试次数
-    MAX_RETRY: int = 3
+    MAX_RETRY: int = 2
 
     # OPENAI 思考模型 o1 o3-mini o4-mini-20240406
     REGEX_O_Series: re.Pattern = re.compile(r"o\d$|o\d\-", flags = re.IGNORECASE)

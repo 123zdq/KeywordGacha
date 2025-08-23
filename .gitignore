@@ -10,3 +10,5 @@ __pycache__
 /*dev*
 /*debug*
 /resource/*ner*
+
+/*private.json

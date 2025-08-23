@@ -17,7 +17,7 @@ from module.ProgressHelper import ProgressHelper
 from module.TestHelper import TestHelper
 from module.FileManager import FileManager
 
-import argparse
+# import argparse
 import time
 
 
@@ -50,17 +50,18 @@ def merge_words(words: list[Word]) -> list[Word]:
 
     return sorted(words_merged, key=lambda x: x.count, reverse=True)
 
+
 # 搜索参考文本，并按出现次数排序
 def search_for_context(words: list[Word], input_lines: list[str]) -> list[Word]:
     # 复制一份，避免后续的修改影响原始数据
     input_lines_ex = copy.copy(input_lines)
 
     # 按实体词语的长度降序排序
-    words = sorted(words, key = lambda v: len(v.surface), reverse = True)
+    words = sorted(words, key=lambda v: len(v.surface), reverse=True)
 
     LogHelper.print("")
     with ProgressHelper.get_progress() as progress:
-        pid = progress.add_task("搜索参考文本", total = len(words))
+        pid = progress.add_task("搜索参考文本", total=len(words))
 
         # 搜索参考文本
         for word in words:
@@ -69,38 +70,40 @@ def search_for_context(words: list[Word], input_lines: list[str]) -> list[Word]:
 
             # 获取匹配的参考文本，去重，并按长度降序排序
             word.context = {line for i, line in enumerate(input_lines) if i in index}
-            word.context = sorted(list(word.context), key = lambda v: len(v), reverse = True)
+            word.context = sorted(list(word.context), key=lambda v: len(v), reverse=True)
             word.count = len(word.context)
             word.group = "未知类型"
 
             # 掩盖已命中的实体词语文本，避免其子串错误的与父串匹配
-            input_lines_ex = [
-                line.replace(word.surface, len(word.surface) * "#")  if i in index else line
-                for i, line in enumerate(input_lines_ex)
-            ]
+            input_lines_ex = [line.replace(word.surface, len(word.surface) * "#") if i in index else line for i, line in enumerate(input_lines_ex)]
 
             # 更新进度条
-            progress.update(pid, advance = 1)
+            progress.update(pid, advance=1)
     LogHelper.print("")
 
     # 按出现次数降序排序
-    return sorted(words, key = lambda x: x.count, reverse = True)
+    return sorted(words, key=lambda x: x.count, reverse=True)
+
 
 # 按置信度过滤词语
 def filter_words_by_score(words: list[Word], threshold: float) -> list[Word]:
     return [word for word in words if word.score >= threshold]
 
+
 # 按出现次数过滤词语
 def filter_words_by_count(words: list[Word], threshold: float) -> list[Word]:
     return [word for word in words if word.count >= max(1, threshold)]
+
 
 # 获取指定类型的词
 def get_words_by_type(words: list[Word], group: str) -> list[Word]:
     return [word for word in words if word.group == group]
 
+
 # 移除指定类型的词
 def remove_words_by_type(words: list[Word], group: str) -> list[Word]:
     return [word for word in words if word.group != group]
+
 
 # 开始处理文本
 async def process_text(llm: LLM, ner: NER, file_manager: FileManager, config: SimpleNamespace, language: int) -> None:
@@ -182,6 +185,7 @@ async def process_text(llm: LLM, ner: NER, file_manager: FileManager, config: Si
 
     # os.system("pause")
 
+
 # 接口测试
 async def test_api(llm: LLM) -> None:
     # 设置请求限制器
@@ -199,26 +203,27 @@ async def test_api(llm: LLM) -> None:
     # os.system("pause")
     # os.system("cls")
 
+
 # 此函数暂时屏蔽
 # 打印应用信息
 def print_app_info(config: SimpleNamespace, version: str) -> None:
     LogHelper.print()
     LogHelper.print()
-    LogHelper.rule(f"KeywordGacha {version}", style = "light_goldenrod2")
-    LogHelper.rule("[blue]https://github.com/neavo/KeywordGacha", style = "light_goldenrod2")
-    LogHelper.rule("使用 AI 能力分析 小说、游戏、字幕 等文本内容并生成术语表的次世代翻译辅助工具", style = "light_goldenrod2")
+    LogHelper.rule(f"KeywordGacha {version}", style="light_goldenrod2")
+    LogHelper.rule("[blue]https://github.com/neavo/KeywordGacha", style="light_goldenrod2")
+    LogHelper.rule("使用 AI 能力分析 小说、游戏、字幕 等文本内容并生成术语表的次世代翻译辅助工具", style="light_goldenrod2")
     LogHelper.print()
 
     table = Table(
-        box = box.ASCII2,
-        expand = True,
-        highlight = True,
-        show_lines = True,
-        show_header = False,
-        border_style = "light_goldenrod2",
+        box=box.ASCII2,
+        expand=True,
+        highlight=True,
+        show_lines=True,
+        show_header=False,
+        border_style="light_goldenrod2",
     )
-    table.add_column("", style = "white", ratio = 2, overflow = "fold")
-    table.add_column("", style = "white", ratio = 5, overflow = "fold")
+    table.add_column("", style="white", ratio=2, overflow="fold")
+    table.add_column("", style="white", ratio=5, overflow="fold")
 
     rows = []
     rows.append(("模型名称", str(config.model_name)))
@@ -241,6 +246,7 @@ def print_app_info(config: SimpleNamespace, version: str) -> None:
     LogHelper.print("请编辑 [green]config.json[/] 文件来修改上表中的设置")
     LogHelper.print()
 
+
 # 打印菜单
 # 此函数暂时弃用
 def print_menu_main() -> int:
@@ -252,19 +258,23 @@ def print_menu_main() -> int:
     LogHelper.print("\t--> 4. 开始处理 [green]韩文文本[/]")
     LogHelper.print("\t--> 5. 开始执行 [green]接口测试[/]")
     LogHelper.print("")
-    choice = int(Prompt.ask("请输入选项前的 [green]数字序号[/] 来使用对应的功能，默认为 [green][3][/] ",
-        choices = ["1", "2", "3", "4", "5"],
-        default = "3",
-        show_choices = False,
-        show_default = False
-    ))
+    choice = int(
+        Prompt.ask(
+            "请输入选项前的 [green]数字序号[/] 来使用对应的功能，默认为 [green][3][/] ",
+            choices=["1", "2", "3", "4", "5"],
+            default="3",
+            show_choices=False,
+            show_default=False,
+        )
+    )
     LogHelper.print("")
 
     return choice
 
+
 # 主函数
 async def begin(llm: LLM, ner: NER, file_manager: FileManager, config: SimpleNamespace, version: str) -> None:
-    
+
     # 暂时屏蔽运行时参数展示
     # print_app_info(config, version)
 
@@ -280,8 +290,9 @@ async def begin(llm: LLM, ner: NER, file_manager: FileManager, config: SimpleNam
     elif config.task == 5:
         await test_api(llm)
 
+
 # 一些初始化步骤
-def load_config(args) -> tuple[LLM, NER, FileManager, SimpleNamespace, str]:
+def load_config() -> tuple[LLM, NER, FileManager, SimpleNamespace, str]:  # args: SimpleNamespace
     with LogHelper.status("正在初始化 [green]KG[/] 引擎 ..."):
         config = SimpleNamespace()
         version = ""
@@ -294,20 +305,27 @@ def load_config(args) -> tuple[LLM, NER, FileManager, SimpleNamespace, str]:
                 path = "config_dev.json"
 
             # 读取配置文件
-            with open(path, "r", encoding = "utf-8-sig") as reader:
+            with open(path, "r", encoding="utf-8-sig") as reader:
+                for k, v in json.load(reader).items():
+                    setattr(config, k, v[0])
+
+            # 读取私有配置文件
+            with open("config_private.json", "r", encoding="utf-8-sig") as reader:
                 for k, v in json.load(reader).items():
                     setattr(config, k, v[0])
 
             # 读取版本号文件
-            with open("version.txt", "r", encoding = "utf-8-sig") as reader:
+            with open("version.txt", "r", encoding="utf-8-sig") as reader:
                 version = reader.read().strip()
         except Exception:
             LogHelper.error("配置文件读取失败 ...")
 
+        """
         # 如果有，用命令行参数覆盖配置文件中的设置
         for k, v in vars(args).items():
             if v != None:
                 setattr(config, k, v)
+        """
 
         # 初始化 LLM 对象
         llm = LLM(config)
@@ -323,14 +341,15 @@ def load_config(args) -> tuple[LLM, NER, FileManager, SimpleNamespace, str]:
 
     return llm, ner, file_manager, config, version
 
+
 # 确保程序出错时可以捕捉到错误日志
-async def main(args) -> None:
+async def main() -> None:  # args: SimpleNamespace
     try:
         # 注册全局异常追踪器
         install()
 
         # 加载配置
-        llm, ner, file_manager, config, version = load_config(args)
+        llm, ner, file_manager, config, version = load_config()  # args
 
         # 开始处理
         await begin(llm, ner, file_manager, config, version)
@@ -347,8 +366,10 @@ async def main(args) -> None:
         LogHelper.print()
         # os.system("pause")
 
+
 # 入口函数
 if __name__ == "__main__":
+    """
     parser = argparse.ArgumentParser(prog="app")
     parser.add_argument(
         "--task",
@@ -359,4 +380,8 @@ if __name__ == "__main__":
     parser.add_argument("--input", type=str, help="输入文件夹")
     # parser.add_argument("--output", type=str, help="输出文件夹") # 前往 config.json 修改
     args = parser.parse_args()
+
     asyncio.run(main(args))
+    """
+
+    asyncio.run(main())
