@@ -21,7 +21,8 @@ from transformers.tokenization_utils_fast import PreTrainedTokenizerFast
 
 from model.Word import Word
 from module.Text.TextHelper import TextHelper
-from module.LogHelper import LogHelper
+from module.LogManager import LogManager
+LogHelper = LogManager.get()
 from module.ProgressHelper import ProgressHelper
 
 class NER:
@@ -190,7 +191,7 @@ class NER:
                             if v.get("srt") != None:
                                 self.blacklist.add(v.get("srt"))
         except Exception as e:
-            LogHelper.error(f"加载配置文件时发生错误 - {LogHelper.get_trackback(e)}")
+            LogHelper.error("加载配置文件时发生错误",e)
 
     # 加载模型
     def load_model(self, model_path: str, gpu_boost: bool) -> PreTrainedModel:

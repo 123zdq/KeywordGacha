@@ -20,7 +20,8 @@ from module.File.KVJSON import KVJSON
 from module.File.MESSAGEJSON import MESSAGEJSON
 from module.Text.TextHelper import TextHelper
 from module.Cache.CacheItem import CacheItem
-from module.LogHelper import LogHelper
+from module.LogManager import LogManager
+LogHelper = LogManager.get()
 from module.Normalizer import Normalizer
 from module.XLSXHelper import XLSXHelper
 
@@ -96,7 +97,7 @@ class FileManager():
             items.extend(KVJSON(config).read_from_path([path for path in paths if path.lower().endswith(".json")]))
             items.extend(MESSAGEJSON(config).read_from_path([path for path in paths if path.lower().endswith(".json")]))
         except Exception as e:
-            LogHelper.error(f"文件读取失败 ... {e}")
+            LogHelper.error(f"文件读取失败 ...",e)
 
         return [
             v.get_src().strip()

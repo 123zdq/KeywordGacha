@@ -14,7 +14,8 @@ from base.BaseData import BaseData
 from model.NER import NER
 from model.Word import Word
 from module.Text.TextHelper import TextHelper
-from module.LogHelper import LogHelper
+from module.LogManager import LogManager
+LogHelper = LogManager.get()
 
 
 def convert_request_json_from_vllm_to_llamacpp_inline(request_json : dict[str,Any]) -> None:
@@ -96,19 +97,19 @@ class LLM:
             with open("prompt/prompt_context_translate.txt", "r", encoding = "utf-8-sig") as reader:
                 self.prompt_context_translate = reader.read().strip()
         except Exception as e:
-            LogHelper.error(f"加载配置文件时发生错误 - {LogHelper.get_trackback(e)}")
+            LogHelper.error("加载配置文件时发生错误",e)
 
         try:
             with open("prompt/prompt_surface_analysis_with_translation.txt", "r", encoding = "utf-8-sig") as reader:
                 self.prompt_surface_analysis_with_translation = reader.read().strip()
         except Exception as e:
-            LogHelper.error(f"加载配置文件时发生错误 - {LogHelper.get_trackback(e)}")
+            LogHelper.error("加载配置文件时发生错误",e)
 
         try:
             with open("prompt/prompt_surface_analysis_without_translation.txt", "r", encoding = "utf-8-sig") as reader:
                 self.prompt_surface_analysis_without_translation = reader.read().strip()
         except Exception as e:
-            LogHelper.error(f"加载配置文件时发生错误 - {LogHelper.get_trackback(e)}")
+            LogHelper.error("加载配置文件时发生错误",e)
 
     # 加载配置文件
     def load_llm_config(self) -> None:
@@ -116,19 +117,19 @@ class LLM:
             with open("resource/llm_config/api_test_config.json", "r", encoding = "utf-8-sig") as reader:
                 self.api_test_config = repair.load(reader)
         except Exception as e:
-            LogHelper.error(f"加载配置文件时发生错误 - {LogHelper.get_trackback(e)}")
+            LogHelper.error("加载配置文件时发生错误",e)
 
         try:
             with open("resource/llm_config/surface_analysis_config.json", "r", encoding = "utf-8-sig") as reader:
                 self.surface_analysis_config = repair.load(reader)
         except Exception as e:
-            LogHelper.error(f"加载配置文件时发生错误 - {LogHelper.get_trackback(e)}")
+            LogHelper.error("加载配置文件时发生错误",e)
 
         try:
             with open("resource/llm_config/context_translate_config.json", "r", encoding = "utf-8-sig") as reader:
                 self.context_translate_config = repair.load(reader)
         except Exception as e:
-            LogHelper.error(f"加载配置文件时发生错误 - {LogHelper.get_trackback(e)}")
+            LogHelper.error("加载配置文件时发生错误",e)
 
     # 设置请求限制器
     def set_request_limiter(self) -> None:

@@ -12,7 +12,7 @@ from rich.traceback import install
 from model.LLM import LLM
 from model.NER import NER
 from model.Word import Word
-from module.LogHelper import LogHelper
+from module.LogManager import LogManager
 from module.ProgressHelper import ProgressHelper
 from module.TestHelper import TestHelper
 from module.FileManager import FileManager
@@ -24,6 +24,8 @@ import sys
 
 # 定义常量  实体词语的置信度阈值
 SCORE_THRESHOLD = 0.60
+
+LogHelper = LogManager.get()
 
 
 # 格式化时间
@@ -76,7 +78,9 @@ def search_for_context(words: list[Word], input_lines: list[str]) -> list[Word]:
             word.group = "未知类型"
 
             # 掩盖已命中的实体词语文本，避免其子串错误的与父串匹配
-            input_lines_ex = [line.replace(word.surface, len(word.surface) * "#") if i in index else line for i, line in enumerate(input_lines_ex)]
+            input_lines_ex = [
+                line.replace(word.surface, len(word.surface) * "#") if i in index else line for i, line in enumerate(input_lines_ex)
+            ]
 
             # 更新进度条
             progress.update(pid, advance=1)
@@ -177,12 +181,11 @@ async def process_text(llm: LLM, ner: NER, file_manager: FileManager, config: Si
     TestHelper.save_context_translate_log(words, "log_context_translate.log")
 
     # 将结果写入文件
-    LogHelper.info("")
+    LogHelper.info("将结果写入文件中 ...")
     file_manager.write_result_to_file(config.output, words, language)
 
-    # 等待用户退出
-    LogHelper.info("")
-    LogHelper.info(f"工作流程已结束，耗时 {format_duration(time.time() - start_time)} ，请检查输出的数据文件 ...")
+    # 结束
+    LogHelper.info(f"\n工作流程已结束，耗时 {format_duration(time.time() - start_time)} ，请检查输出的数据文件 ...")
 
 
 # 接口测试
@@ -199,18 +202,15 @@ async def test_api(llm: LLM) -> None:
         LogHelper.warning("接口测试 [red]执行失败[/], 程序中止, 请检查配置文件 ...")
         sys.exit()
 
-
     LogHelper.print("")
 
 
-# 此函数暂时屏蔽
 # 打印应用信息
 def print_app_info(config: SimpleNamespace, version: str) -> None:
-    LogHelper.print()
-    LogHelper.print()
+    LogHelper.print("\n\n")
     LogHelper.rule(f"KeywordGacha {version}", style="light_goldenrod2")
-    LogHelper.rule("[blue]https://github.com/neavo/KeywordGacha", style="light_goldenrod2")
-    LogHelper.rule("使用 AI 能力分析 小说、游戏、字幕 等文本内容并生成术语表的次世代翻译辅助工具", style="light_goldenrod2")
+    LogHelper.rule("[blue]https://github.com/123zdq/KeywordGacha", style="light_goldenrod2")
+    LogHelper.rule("针对本地AI工作流优化的术语表生成工具", style="light_goldenrod2")
     LogHelper.print()
 
     table = Table(
@@ -242,8 +242,7 @@ def print_app_info(config: SimpleNamespace, version: str) -> None:
         table.add_row(*row)
     LogHelper.print(table)
 
-    LogHelper.print("请编辑 [green]config.json[/] 文件来修改上表中的设置")
-    LogHelper.print()
+    LogHelper.print("请编辑 [green]config_private.json[/] 文件来修改上表中的设置\n")
 
 
 # 打印菜单
@@ -274,14 +273,13 @@ def print_menu_main() -> int:
 # 主函数
 async def begin(llm: LLM, ner: NER, file_manager: FileManager, config: SimpleNamespace, version: str) -> None:
 
-    # 暂时屏蔽运行前参数展示
-    # print_app_info(config, version)
-    
+    print_app_info(config, version)
+
     llm.set_request_limiter()
 
     if config.test_api:
         await test_api(llm)
-    
+
     # choice = print_menu_main()
     if config.task == 1:
         await process_text(llm, ner, file_manager, config, NER.Language.ZH)
@@ -291,7 +289,6 @@ async def begin(llm: LLM, ner: NER, file_manager: FileManager, config: SimpleNam
         await process_text(llm, ner, file_manager, config, NER.Language.JA)
     elif config.task == 4:
         await process_text(llm, ner, file_manager, config, NER.Language.KO)
-    
 
 
 # 一些初始化步骤
@@ -320,8 +317,8 @@ def load_config() -> tuple[LLM, NER, FileManager, SimpleNamespace, str]:  # args
             # 读取版本号文件
             with open("version.txt", "r", encoding="utf-8-sig") as reader:
                 version = reader.read().strip()
-        except Exception:
-            LogHelper.error("配置文件读取失败 ...")
+        except Exception as e:
+            LogHelper.error("配置文件读取失败 ...", e)
 
         """
         # 如果有，用命令行参数覆盖配置文件中的设置
@@ -356,18 +353,16 @@ async def main() -> None:  # args: SimpleNamespace
 
         # 开始处理
         await begin(llm, ner, file_manager, config, version)
-    except EOFError:
-        LogHelper.error("EOFError - 程序即将退出 ...")
+    except EOFError as e:
+        LogHelper.error("EOFError - 程序即将退出 ...", e)
     except KeyboardInterrupt:
         LogHelper.error("KeyboardInterrupt - 程序即将退出 ...")
     except Exception as e:
-        LogHelper.error(f"{LogHelper.get_trackback(e)}")
         LogHelper.print()
         LogHelper.print()
-        LogHelper.error("出现严重错误，程序即将退出，错误信息已保存至日志文件 [green]KeywordGacha.log[/] ...")
+        LogHelper.error("出现严重错误，程序即将退出，错误信息已保存至日志文件 [green]log/app.log[/] ...", e)
         LogHelper.print()
         LogHelper.print()
-        # os.system("pause")
 
 
 # 入口函数
