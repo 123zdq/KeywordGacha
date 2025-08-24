@@ -19,6 +19,7 @@ from module.FileManager import FileManager
 
 # import argparse
 import time
+import sys
 
 
 # 定义常量  实体词语的置信度阈值
@@ -141,7 +142,7 @@ async def process_text(llm: LLM, ner: NER, file_manager: FileManager, config: Si
 
     # 设置 LLM 对象
     llm.set_language(language)
-    llm.set_request_limiter()
+    # llm.set_request_limiter()
 
     # 等待 词义分析 任务结果
     LogHelper.info("即将开始执行 [词义分析] ...")
@@ -183,13 +184,11 @@ async def process_text(llm: LLM, ner: NER, file_manager: FileManager, config: Si
     LogHelper.info("")
     LogHelper.info(f"工作流程已结束，耗时 {format_duration(time.time() - start_time)} ，请检查输出的数据文件 ...")
 
-    # os.system("pause")
-
 
 # 接口测试
 async def test_api(llm: LLM) -> None:
     # 设置请求限制器
-    llm.set_request_limiter()
+    # llm.set_request_limiter()
 
     # 等待接口测试结果
     if await llm.api_test():
@@ -197,11 +196,11 @@ async def test_api(llm: LLM) -> None:
         LogHelper.info("接口测试 [green]执行成功[/] ...")
     else:
         LogHelper.print("")
-        LogHelper.warning("接口测试 [red]执行失败[/], 请检查配置文件 ...")
+        LogHelper.warning("接口测试 [red]执行失败[/], 程序中止, 请检查配置文件 ...")
+        sys.exit()
+
 
     LogHelper.print("")
-    # os.system("pause")
-    # os.system("cls")
 
 
 # 此函数暂时屏蔽
@@ -275,9 +274,14 @@ def print_menu_main() -> int:
 # 主函数
 async def begin(llm: LLM, ner: NER, file_manager: FileManager, config: SimpleNamespace, version: str) -> None:
 
-    # 暂时屏蔽运行时参数展示
+    # 暂时屏蔽运行前参数展示
     # print_app_info(config, version)
+    
+    llm.set_request_limiter()
 
+    if config.test_api:
+        await test_api(llm)
+    
     # choice = print_menu_main()
     if config.task == 1:
         await process_text(llm, ner, file_manager, config, NER.Language.ZH)
@@ -287,8 +291,7 @@ async def begin(llm: LLM, ner: NER, file_manager: FileManager, config: SimpleNam
         await process_text(llm, ner, file_manager, config, NER.Language.JA)
     elif config.task == 4:
         await process_text(llm, ner, file_manager, config, NER.Language.KO)
-    elif config.task == 5:
-        await test_api(llm)
+    
 
 
 # 一些初始化步骤

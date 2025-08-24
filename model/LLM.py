@@ -16,6 +16,16 @@ from model.Word import Word
 from module.Text.TextHelper import TextHelper
 from module.LogHelper import LogHelper
 
+
+def convert_request_json_from_vllm_to_llamacpp_inline(request_json : dict[str,Any]) -> None:
+    if request_json.get("extra_body", {}).get("guided_json"):
+        request_json["extra_body"]["response_format"] = {
+            "type": "json_object",
+            "schema": request_json["extra_body"]["guided_json"]
+        }
+        del request_json["extra_body"]["guided_json"]
+
+
 class LLM:
 
     # 任务类型
@@ -30,6 +40,9 @@ class LLM:
 
     # OPENAI 思考模型 o1 o3-mini o4-mini-20240406
     REGEX_O_Series: re.Pattern = re.compile(r"o\d$|o\d\-", flags = re.IGNORECASE)
+
+    # 后端是否为 llama.cpp
+    Back_End_LLAMA_CPP: bool = False
 
     # 类型映射表
     GROUP_MAPPING = {
@@ -130,6 +143,7 @@ class LLM:
         # 如果响应数据有效，则是 llama.cpp 接口
         if isinstance(response_json, list) and len(response_json) > 0:
             self.request_frequency_threshold = len(response_json)
+            self.Back_End_LLAMA_CPP = True
             LogHelper.info("")
             LogHelper.info(f"检查到 [green]llama.cpp[/]，根据其配置，请求频率阈值自动设置为 [green]{len(response_json)}[/] 次/秒 ...")
             LogHelper.info("")
@@ -210,6 +224,10 @@ class LLM:
             try:
                 success = False
 
+                # 对 llama.cpp 适配格式化输出请求
+                if self.Back_End_LLAMA_CPP == True:
+                    convert_request_json_from_vllm_to_llamacpp_inline(self.api_test_config) 
+
                 error, usage, _, response_result, llm_request, llm_response = await self.do_request(
                     [
                         {
@@ -252,14 +270,22 @@ class LLM:
                     x = [v for group in LLM.GROUP_MAPPING.values() for v in group]
                     y = [v for group in LLM.GROUP_MAPPING_BANNED.values() for v in group]
                     self.prompt_groups = x + y
-                    self.surface_analysis_config["extra_body"]["guided_json"]["properties"]["group"]["enum"] = self.prompt_groups 
+                    
+                    if self.Back_End_LLAMA_CPP == True:
+                        convert_request_json_from_vllm_to_llamacpp_inline(self.surface_analysis_config)
+                        request_json = self.surface_analysis_config["extra_body"]["response_format"]["schema"]
+                    else:
+                        request_json = self.surface_analysis_config["extra_body"]["guided_json"]
+                    request_json["properties"]["group"]["enum"] = self.prompt_groups
+                    if self.language == NER.Language.ZH:
+                        del request_json["properties"]["translation"]
+                        request_json["required"].pop()
+
 
                 if self.language != NER.Language.ZH:
                     prompt = self.prompt_surface_analysis_with_translation
                 else:
                     prompt = self.prompt_surface_analysis_without_translation
-                    del self.surface_analysis_config["extra_body"]["guided_json"]["properties"]["translation"]
-                    self.surface_analysis_config["extra_body"]["guided_json"]["required"].pop()
 
                 error, usage, _, response_result, llm_request, llm_response = await self.do_request(
                     [
