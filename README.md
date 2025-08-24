@@ -2,12 +2,16 @@
 
 
 
-本项目是基于 [KeywordGacha v0.14.0](https://github.com/neavo/KeywordGacha/tree/b1379be69a6b4d06d5e00b5a551cbb7350feadd3) 的二次开发版本，旨在保留核心特性并增强自动化体验
+本项目是基于 [KeywordGacha v0.14.0](https://github.com/neavo/KeywordGacha/tree/b1379be69a6b4d06d5e00b5a551cbb7350feadd3) 的二次开发版本，旨在保留该版本的核心特性并增强自动化体验
 
-### 主要变化（相对原项目v0.14）
+### 主要变化
 v0.14.2
-* 自动化：增强了配置文件，移除了运行时所需的键盘输入
-* 优化：适配引导解码技术（支持的后端：vllm、llama.cpp），现在本地模型会 **严格地遵循格式** 来回应词义分析任务
+* 增强了配置文件，移除了运行时所需的键盘输入
+* 适配了引导解码（已支持的后端：vllm、llama.cpp），现在本地模型会 **严格地遵循格式** 来回应词义分析任务
+
+### to-do
+* 分离 词义分析任务 与 术语翻译任务
+* 与 linguagacha 更加自动化地对接
 
 
 
