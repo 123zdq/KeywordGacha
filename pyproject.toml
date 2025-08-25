@@ -1,0 +1,39 @@
+[project]
+name = "keywordgacha"
+version = "0.14.2"
+description = "本地工作流特化版"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "aiolimiter>=1.2.1",
+    "beautifulsoup4>=4.13.5",
+    "json-repair>=0.50.0",
+    "lxml>=6.0.1",
+    "openai>=1.101.0",
+    "openpyxl>=3.1.5",
+    "pecab>=1.0.8",
+    "pykakasi>=2.3.0",
+    "rich>=14.1.0",
+    "sudachidict-core>=20250515",
+    "sudachipy>=0.6.10",
+    "tiktoken>=0.11.0",
+    "torch>=2.8.0",
+    "torchvision>=0.23.0",
+    "transformers>=4.55.4",
+]
+
+
+
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cu129", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+torchvision = [
+  { index = "pytorch-cu129", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu129"
+url = "https://download.pytorch.org/whl/cu129"
+explicit = true

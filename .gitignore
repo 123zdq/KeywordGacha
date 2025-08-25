@@ -1,14 +1,14 @@
-__pycache__
+.venv
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
 
-/env*
-/dist*
-/build*
-/input*
-/output*
-
-/*log*
-/*dev*
-/*debug*
 /resource/*ner*
-
+/log/
+/*.log
+/input/
+/output/
 /*private.json
