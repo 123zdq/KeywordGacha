@@ -21,25 +21,35 @@ from module.File.MESSAGEJSON import MESSAGEJSON
 from module.Text.TextHelper import TextHelper
 from module.Cache.CacheItem import CacheItem
 from module.LogManager import LogManager
-LogHelper = LogManager.get()
 from module.Normalizer import Normalizer
 from module.XLSXHelper import XLSXHelper
 
-class FileManager():
+
+LogHelper = LogManager.get()
+
+
+class FileManager:
 
     # 去重
-    RE_DUPLICATE = re.compile(r"[\r\n]+", flags = re.IGNORECASE)
+    RE_DUPLICATE = re.compile(r"[\r\n]+")
+
+    # 除了空格以外的行内空白符
+    RE_NON_SPACE_WHITESPACE = re.compile(r"[^\S ]+")
+
+    # 一个或多个连续的空格
+    RE_MULTIPLE_SPACES = re.compile(r" +")
 
     def __init__(self) -> None:
         super().__init__()
 
     # 加载角色数据
-    def load_names(self, path: str) -> tuple[dict, dict]:
-        names = {}
-        nicknames = {}
+    @staticmethod
+    def load_names(path: str) -> tuple[dict[int, str], dict[int, str]]:
+        names: dict[int, str] = {}
+        nicknames: dict[int, str] = {}
 
         if os.path.exists(path):
-            with open(path, "r", encoding = "utf-8-sig") as reader:
+            with open(path, "r", encoding="utf-8-sig") as reader:
                 for item in json.load(reader):
                     if isinstance(item, dict):
                         id = item.get("id", -1)
@@ -49,20 +59,23 @@ class FileManager():
 
                         names[id] = item.get("name", "")
                         nicknames[id] = item.get("nickname", "")
-            LogHelper.info(f"从 [green]Actors.json[/] 文件中加载了 {len(names) + len(nicknames)} 条数据，稍后将执行 [green]角色代码还原[/] 步骤 ...")
+            LogHelper.info(
+                f"从 [green]Actors.json[/] 文件中加载了 {len(names) + len(nicknames)} 条数据，稍后将执行 [green]角色代码还原[/] 步骤 ..."
+            )
 
         return names, nicknames
 
     # 清理文本
-    def cleanup(self, line: str, language: int) -> str:
+    @classmethod
+    def cleanup(cls, line: str, language: int) -> str:
         # 由于上面的代码移除，可能会产生空人名框的情况，干掉
         line = line.replace("【】", "")
 
         # 干掉除了空格以外的行内空白符（包括换行符、制表符、回车符、换页符等）
-        line = re.sub(r"[^\S ]+", "", line)
+        line = cls.RE_NON_SPACE_WHITESPACE.sub("", line)
 
         # 合并连续的空格为一个空格
-        line = re.sub(r" +", " ", line)
+        line = cls.RE_MULTIPLE_SPACES.sub(" ", line)
 
         return line
 
@@ -78,12 +91,7 @@ class FileManager():
                     paths.extend([f"{root}/{file}".replace("\\", "/") for file in files])
 
             # 伪数据
-            config: dict[str, str] = {
-                "input_folder": "",
-                "output_folder": "",
-                "source_language": "",
-                "target_language": ""
-            }
+            config: dict[str, str] = {"input_folder": "", "output_folder": "", "source_language": "", "target_language": ""}
 
             items.extend(MD(config).read_from_path([path for path in paths if path.lower().endswith(".md")]))
             items.extend(TXT(config).read_from_path([path for path in paths if path.lower().endswith(".txt")]))
@@ -97,7 +105,7 @@ class FileManager():
             items.extend(KVJSON(config).read_from_path([path for path in paths if path.lower().endswith(".json")]))
             items.extend(MESSAGEJSON(config).read_from_path([path for path in paths if path.lower().endswith(".json")]))
         except Exception as e:
-            LogHelper.error(f"文件读取失败 ...",e)
+            LogHelper.error("文件读取失败 ...", e)
 
         return [
             v.get_src().strip()
@@ -109,15 +117,15 @@ class FileManager():
         ]
 
     # 从输入文件中加载数据
-    def read_lines_from_input_file(self, input_path:str, language: int) -> tuple[list, dict[int, str], dict[int, str]]:
+    def read_lines_from_input_file(self, input_path: str, language: int) -> tuple[list[str], dict[int, str], dict[int, str]]:
         self.input_path = input_path
-        
+
         # 依次读取每个数据文件
         with LogHelper.status("正在读取输入文件 ..."):
             lines = self.read_from_path(self.input_path)
 
         LogHelper.info(f"已在 [green]{self.input_path}[/] 路径下找到数据 [green]{len(lines)}[/] 条")
-        
+
         # 尝试从输入路径的同级路径或者下级路径加载角色数据，找不到则生成伪数据
         names, nicknames = {}, {}
         if os.path.isfile(f"{self.input_path}/Actors.json"):
@@ -128,10 +136,10 @@ class FileManager():
         # 依次读取每个数据文件
         with LogHelper.status("正在检查输入文件 ..."):
 
-            lines_filtered = []
+            lines_filtered: list[str] = []
             for line in lines:
-                line = Normalizer.normalize(line, merge_space = True)
-                line = self.cleanup(line, language)
+                line = Normalizer.normalize(line)
+                line: str = self.cleanup(line, language)
 
                 if len(line) == 0:
                     continue
@@ -153,7 +161,7 @@ class FileManager():
 
     # 将 词语日志 写入文件
     def write_log_to_file(self, words: list[Word], path: str, language: int) -> None:
-        with open(path, "w", encoding = "utf-8") as writer:
+        with open(path, "w", encoding="utf-8") as writer:
             for k, word in enumerate(words):
                 if getattr(word, "surface", "") != "":
                     writer.write(f"词语原文 : {word.surface}" + "\n")
@@ -191,7 +199,7 @@ class FileManager():
 
     # 写入文件
     def write_glossary_to_json_file(self, words: list[Word], path: str, language: int) -> None:
-        with open(path, "w", encoding = "utf-8") as file:
+        with open(path, "w", encoding="utf-8") as file:
             datas = []
             for word in words:
                 data = {}
@@ -209,7 +217,7 @@ class FileManager():
 
                 datas.append(data)
 
-            file.write(json.dumps(datas, indent = 4, ensure_ascii = False))
+            file.write(json.dumps(datas, indent=4, ensure_ascii=False))
             LogHelper.info(f"结果已写入 - [green]{path}[/]")
 
     # 写入文件
@@ -251,15 +259,11 @@ class FileManager():
     # 将结果写入文件
     def write_result_to_file(self, output_path: str, words: list[Word], language: int) -> None:
         # 获取输出路径
-        os.makedirs(output_path, exist_ok = True)
+        os.makedirs(output_path, exist_ok=True)
         file_name, _ = os.path.splitext(os.path.basename(self.input_path))
 
         # 清理一下
-        [
-            os.remove(entry.path)
-            for entry in os.scandir(output_path)
-            if entry.is_file() and f"{file_name}_" in entry.path
-        ]
+        [os.remove(entry.path) for entry in os.scandir(output_path) if entry.is_file() and f"{file_name}_" in entry.path]
 
         for group in {word.group for word in words}:
             words_by_type = [word for word in words if word.group == group]

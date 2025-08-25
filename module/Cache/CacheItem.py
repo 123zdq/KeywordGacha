@@ -9,75 +9,76 @@ from base.Base import Base
 from base.BaseData import BaseData
 from module.Text.TextBase import TextBase
 
+
 class CacheItem(BaseData):
 
     # 必须显式的引用这两个库，否则打包后会报错
     tiktoken_ext
     openai_public
 
-    class FileType():
+    class FileType:
 
-        MD: str = "MD"                                  # .md Markdown
-        TXT: str = "TXT"                                # .txt 文本文件
-        SRT: str = "SRT"                                # .srt 字幕文件
-        ASS: str = "ASS"                                # .ass 字幕文件
-        EPUB: str = "EPUB"                              # .epub
-        XLSX: str = "XLSX"                              # .xlsx Translator++ SExtractor
-        WOLFXLSX: str = "WOLFXLSX"                      # .xlsx WOLF 官方翻译工具导出文件
-        RENPY: str = "RENPY"                            # .rpy RenPy
-        TRANS: str = "TRANS"                            # .trans Translator++
-        KVJSON: str = "KVJSON"                          # .json MTool
-        MESSAGEJSON: str = "MESSAGEJSON"                # .json SExtractor
+        MD: str = "MD"                    # .md Markdown
+        TXT: str = "TXT"                  # .txt 文本文件
+        SRT: str = "SRT"                  # .srt 字幕文件
+        ASS: str = "ASS"                  # .ass 字幕文件
+        EPUB: str = "EPUB"                # .epub
+        XLSX: str = "XLSX"                # .xlsx Translator++ SExtractor
+        WOLFXLSX: str = "WOLFXLSX"        # .xlsx WOLF 官方翻译工具导出文件
+        RENPY: str = "RENPY"              # .rpy RenPy
+        TRANS: str = "TRANS"              # .trans Translator++
+        KVJSON: str = "KVJSON"            # .json MTool
+        MESSAGEJSON: str = "MESSAGEJSON"  # .json SExtractor
 
-    class TextType():
+    class TextType:
 
-        NONE: str = "NONE"                              # 无类型，即纯文本
-        MD: str = "MD"                                  # Markdown
-        KAG: str = "KAG"                                # KAG 游戏文本
-        WOLF: str = "WOLF"                              # WOLF 游戏文本
-        RENPY: str = "RENPY"                            # RENPY 游戏文本
-        RPGMAKER: str = "RPGMAKER"                      # RPGMAKER 游戏文本
+        NONE: str = "NONE"                # 无类型，即纯文本
+        MD: str = "MD"                    # Markdown
+        KAG: str = "KAG"                  # KAG 游戏文本
+        WOLF: str = "WOLF"                # WOLF 游戏文本
+        RENPY: str = "RENPY"              # RENPY 游戏文本
+        RPGMAKER: str = "RPGMAKER"        # RPGMAKER 游戏文本
 
     # 缓存 Token 数量
     TOKEN_COUNT_CACHE: dict[str, int] = {}
 
     # WOLF
-    REGEX_WOLF: tuple[re.Pattern] = (
-        re.compile(r"@\d+", flags = re.IGNORECASE),                                             # 角色 ID
-        re.compile(r"\\[cus]db\[.+?:.+?:.+?\]", flags = re.IGNORECASE),                         # 数据库变量 \cdb[0:1:2]
+    REGEX_WOLF: tuple[re.Pattern[str],re.Pattern[str]] = (
+        re.compile(r"@\d+", flags=re.IGNORECASE),  # 角色 ID
+        re.compile(r"\\[cus]db\[.+?:.+?:.+?\]", flags=re.IGNORECASE),  # 数据库变量 \cdb[0:1:2]
     )
 
     # RENPY
     CJK_RANGE: str = rf"{TextBase.CJK_RANGE}{TextBase.HANGUL_RANGE}{TextBase.HIRAGANA_RANGE}{TextBase.KATAKANA_RANGE}"
-    REGEX_RENPY: tuple[re.Pattern] = (
-        re.compile(r"\{[^\{" + CJK_RANGE + r"]*?\}", flags = re.IGNORECASE),                    # {w=2.3}
-        re.compile(r"\[[^\[" + CJK_RANGE + r"]*?\]", flags = re.IGNORECASE),                    # [renpy.version_only]
+    REGEX_RENPY: tuple[re.Pattern[str],re.Pattern[str]] = (
+        re.compile(r"\{[^\{" + CJK_RANGE + r"]*?\}", flags=re.IGNORECASE),  # {w=2.3}
+        re.compile(r"\[[^\[" + CJK_RANGE + r"]*?\]", flags=re.IGNORECASE),  # [renpy.version_only]
     )
 
     # RPGMaker
-    REGEX_RPGMaker: tuple[re.Pattern] = (
-        re.compile(r"en\(.{0,8}[vs]\[\d+\].{0,16}\)", flags = re.IGNORECASE),                    # en(!s[982]) en(v[982] >= 1)
-        re.compile(r"if\(.{0,8}[vs]\[\d+\].{0,16}\)", flags = re.IGNORECASE),                    # if(!s[982]) if(v[982] >= 1)
-        re.compile(r"[/\\][a-z]{1,8}[<\[][a-z\d]{0,16}[>\]]", flags = re.IGNORECASE),            # /c[xy12] \bc[xy12] <\bc[xy12]>
+    REGEX_RPGMaker: tuple[re.Pattern[str],re.Pattern[str],re.Pattern[str]] = (
+        re.compile(r"en\(.{0,8}[vs]\[\d+\].{0,16}\)", flags=re.IGNORECASE),  # en(!s[982]) en(v[982] >= 1)
+        re.compile(r"if\(.{0,8}[vs]\[\d+\].{0,16}\)", flags=re.IGNORECASE),  # if(!s[982]) if(v[982] >= 1)
+        re.compile(r"[/\\][a-z]{1,8}[<\[][a-z\d]{0,16}[>\]]", flags=re.IGNORECASE),  # /c[xy12] \bc[xy12] <\bc[xy12]>
     )
 
     def __init__(self, args: dict) -> None:
         super().__init__()
 
         # 默认值
-        self.src: str = ""                                              # 原文
-        self.dst: str = ""                                              # 译文
-        self.name_src: str | tuple[str] = None                          # 角色姓名原文
-        self.name_dst: str | tuple[str] = None                          # 角色姓名译文
-        self.extra_field: str | dict = ""                               # 额外字段原文
-        self.tag: str = ""                                              # 标签
-        self.row: int = 0                                               # 行号
-        self.file_type: str = ""                                        # 原始文件的类型
-        self.file_path: str = ""                                        # 原始文件的相对路径
-        self.text_type: str = CacheItem.TextType.NONE                   # 文本的实际类型
-        self.status: str = Base.TranslationStatus.UNTRANSLATED          # 翻译状态
-        self.retry_count: int = 0                                       # 重试次数，当前只有单独重试的时候才增加此计数
-        self.skip_internal_filter: bool = False                         # 跳过内置过滤器
+        self.src: str = ""  # 原文
+        self.dst: str = ""  # 译文
+        self.name_src: str | tuple[str] = None  # 角色姓名原文
+        self.name_dst: str | tuple[str] = None  # 角色姓名译文
+        self.extra_field: str | dict = ""  # 额外字段原文
+        self.tag: str = ""  # 标签
+        self.row: int = 0  # 行号
+        self.file_type: str = ""  # 原始文件的类型
+        self.file_path: str = ""  # 原始文件的相对路径
+        self.text_type: str = CacheItem.TextType.NONE  # 文本的实际类型
+        self.status: str = Base.TranslationStatus.UNTRANSLATED  # 翻译状态
+        self.retry_count: int = 0  # 重试次数，当前只有单独重试的时候才增加此计数
+        self.skip_internal_filter: bool = False  # 跳过内置过滤器
 
         # 初始化
         for k, v in args.items():

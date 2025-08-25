@@ -293,7 +293,7 @@ class NER:
             surface = self.strip_by_language(surface, language)
 
             # 跳过显示长度小于等于2的词语
-            if TextHelper.get_display_lenght(surface) <= 2:
+            if TextHelper.get_display_length(surface) <= 2:
                 continue
 
             # 按语言验证词语
@@ -487,7 +487,7 @@ class NER:
 
                 # 匹配姓名框
                 for surface in re.findall(r"【(.*?)】", line):
-                    if TextHelper.get_display_lenght(surface) <= 16:
+                    if TextHelper.get_display_length(surface) <= 16:
                         surfaces.add(surface)
 
                 # 筛选并添加

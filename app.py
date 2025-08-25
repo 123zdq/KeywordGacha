@@ -21,6 +21,7 @@ from module.FileManager import FileManager
 import time
 import sys
 
+start_time = time.time()
 
 # 定义常量  实体词语的置信度阈值
 SCORE_THRESHOLD = 0.60
@@ -112,7 +113,7 @@ def remove_words_by_type(words: list[Word], group: str) -> list[Word]:
 
 # 开始处理文本
 async def process_text(llm: LLM, ner: NER, file_manager: FileManager, config: SimpleNamespace, language: int) -> None:
-    start_time = time.time()
+    # start_time = time.time()
 
     # 初始化
     words = []
