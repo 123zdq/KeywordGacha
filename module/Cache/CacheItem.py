@@ -1,9 +1,9 @@
 import re
 import threading
 
-import tiktoken
-import tiktoken_ext
-from tiktoken_ext import openai_public
+# import tiktoken
+# import tiktoken_ext
+# from tiktoken_ext import openai_public
 
 from base.Base import Base
 from base.BaseData import BaseData
@@ -13,8 +13,8 @@ from module.Text.TextBase import TextBase
 class CacheItem(BaseData):
 
     # 必须显式的引用这两个库，否则打包后会报错
-    tiktoken_ext
-    openai_public
+    # tiktoken_ext
+    # openai_public
 
     class FileType:
 
@@ -59,7 +59,7 @@ class CacheItem(BaseData):
     REGEX_RPGMaker: tuple[re.Pattern[str],re.Pattern[str],re.Pattern[str]] = (
         re.compile(r"en\(.{0,8}[vs]\[\d+\].{0,16}\)", flags=re.IGNORECASE),  # en(!s[982]) en(v[982] >= 1)
         re.compile(r"if\(.{0,8}[vs]\[\d+\].{0,16}\)", flags=re.IGNORECASE),  # if(!s[982]) if(v[982] >= 1)
-        re.compile(r"[/\\][a-z]{1,8}[<\[][a-z\d]{0,16}[>\]]", flags=re.IGNORECASE),  # /c[xy12] \bc[xy12] <\bc[xy12]>
+        re.compile(r"[/\\][a-z]{1,8}[<\[][a-z\d]{0,16}[>\]]", flags=re.IGNORECASE),  # /c[xy12] \bc[xy12] \bc<xy12>
     )
 
     def __init__(self, args: dict) -> None:
@@ -84,20 +84,20 @@ class CacheItem(BaseData):
         for k, v in args.items():
             setattr(self, k, v)
 
+        # 如果文件类型是 XLSX、TRANS、KVJSON、MESSAGEJSON，且没有文本类型，则判断实际的文本类型 WOLF / RPGMAKER / RENPY
+        if (
+            self.file_type in (CacheItem.FileType.XLSX, CacheItem.FileType.TRANS, CacheItem.FileType.KVJSON, CacheItem.FileType.MESSAGEJSON)
+            and self.text_type == CacheItem.TextType.NONE
+        ):
+            if any(p.search(self.src) for p in CacheItem.REGEX_WOLF):
+                self.text_type = CacheItem.TextType.WOLF
+            elif any(p.search(self.src) for p in CacheItem.REGEX_RPGMaker):
+                self.text_type = CacheItem.TextType.RPGMAKER
+            elif any(p.search(self.src) for p in CacheItem.REGEX_RENPY):
+                self.text_type = CacheItem.TextType.RENPY
+
         # 线程锁
         self.lock = threading.Lock()
-
-        # 如果文件类型是 XLSX、TRANS、KVJSON、MESSAGEJSON，且没有文本类型，则判断实际的文本类型
-        if (
-            self.get_file_type() in (CacheItem.FileType.XLSX, CacheItem.FileType.KVJSON, CacheItem.FileType.MESSAGEJSON)
-            and self.get_text_type() == CacheItem.TextType.NONE
-        ):
-            if any(v.search(self.get_src()) is not None for v in CacheItem.REGEX_WOLF):
-                self.set_text_type(CacheItem.TextType.WOLF)
-            elif any(v.search(self.get_src()) is not None for v in CacheItem.REGEX_RPGMaker):
-                self.set_text_type(CacheItem.TextType.RPGMAKER)
-            elif any(v.search(self.get_src()) is not None for v in CacheItem.REGEX_RENPY):
-                self.set_text_type(CacheItem.TextType.RENPY)
 
     # 获取原文
     def get_src(self) -> str:
@@ -117,12 +117,14 @@ class CacheItem(BaseData):
     # 设置译文
     def set_dst(self, dst: str) -> None:
         with self.lock:
+            self.dst = dst
+
             # 有时候模型的回复反序列化以后会是 int 等非字符类型，所以这里要强制转换成字符串
             # TODO:可能需要更好的处理方式
-            if isinstance(dst, str):
-                self.dst = dst
-            else:
-                self.dst = str(dst)
+            # if isinstance(dst, str):
+            #     self.dst = dst
+            # else:
+            #     self.dst = str(dst)
 
     # 获取角色姓名原文
     def get_name_src(self) -> str | tuple[str]:
@@ -234,10 +236,11 @@ class CacheItem(BaseData):
         with self.lock:
             self.skip_internal_filter = skip_internal_filter
 
-    # 获取 Token 数量
+    # （已弃用）获取 Token 数量
+    """
     def get_token_count(self) -> int:
         with self.lock:
             if self.src not in CacheItem.TOKEN_COUNT_CACHE:
                 CacheItem.TOKEN_COUNT_CACHE[self.src] = len(tiktoken.get_encoding("o200k_base").encode(self.src))
-
             return CacheItem.TOKEN_COUNT_CACHE[self.src]
+    """

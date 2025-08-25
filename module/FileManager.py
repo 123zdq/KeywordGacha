@@ -3,6 +3,7 @@ import re
 import json
 import openpyxl
 import openpyxl.worksheet.worksheet
+from typing import Any
 
 from base.Base import Base
 from model.NER import NER
@@ -79,33 +80,55 @@ class FileManager:
 
         return line
 
-    # 读
-    def read_from_path(self, input_path: str) -> list[str]:
+    # 检索并处理输入文件
+    # TODO: 重新组织底层文件处理器
+    @staticmethod
+    def read_from_path(input_path: str) -> list[str]:
         items: list[CacheItem] = []
+        paths: list[str] = []
+
+        # 检索输入路径下的所有文件
         try:
-            paths: list[str] = []
             if os.path.isfile(input_path):
                 paths = [input_path]
             elif os.path.isdir(input_path):
                 for root, _, files in os.walk(input_path):
                     paths.extend([f"{root}/{file}".replace("\\", "/") for file in files])
+        except Exception as e:
+            LogHelper.error("输入文件检索失败 ...", e)
+
+        # 依次解析每个输入文件
+        try:
+
+            # 文件注册表  小写扩展名 -> ((处理器类名表),[对应的文件表])
+            handler_map: dict[str, tuple[tuple[Any, ...], list[str]]] = {
+                ".md": ((MD,), []),
+                ".txt": ((TXT,), []),
+                ".ass": ((ASS,), []),
+                ".srt": ((SRT,), []),
+                ".epub": ((EPUB,), []),
+                ".xlsx": ((XLSX, WOLFXLSX,),[],),
+                ".rpy": ((RENPY,), []),
+                ".trans": ((TRANS,), []),
+                ".json": ((KVJSON, MESSAGEJSON,),[],),
+            }
 
             # 伪数据
             config: dict[str, str] = {"input_folder": "", "output_folder": "", "source_language": "", "target_language": ""}
 
-            items.extend(MD(config).read_from_path([path for path in paths if path.lower().endswith(".md")]))
-            items.extend(TXT(config).read_from_path([path for path in paths if path.lower().endswith(".txt")]))
-            items.extend(ASS(config).read_from_path([path for path in paths if path.lower().endswith(".ass")]))
-            items.extend(SRT(config).read_from_path([path for path in paths if path.lower().endswith(".srt")]))
-            items.extend(EPUB(config).read_from_path([path for path in paths if path.lower().endswith(".epub")]))
-            items.extend(XLSX(config).read_from_path([path for path in paths if path.lower().endswith(".xlsx")]))
-            items.extend(WOLFXLSX(config).read_from_path([path for path in paths if path.lower().endswith(".xlsx")]))
-            items.extend(RENPY(config).read_from_path([path for path in paths if path.lower().endswith(".rpy")]))
-            items.extend(TRANS(config).read_from_path([path for path in paths if path.lower().endswith(".trans")]))
-            items.extend(KVJSON(config).read_from_path([path for path in paths if path.lower().endswith(".json")]))
-            items.extend(MESSAGEJSON(config).read_from_path([path for path in paths if path.lower().endswith(".json")]))
+            # 文件分发与处理
+            for path in paths:
+                _, ext = os.path.splitext(path)
+                ext = ext.lower()
+                if ext in handler_map:
+                    handler_map[ext][1].append(path)
+                else:
+                    LogHelper.debug(f"已跳过不支持的文件格式: {path}")
+            for ext in handler_map.values():
+                for handler in ext[0]:
+                    items.extend(handler(config).read_from_path(ext[1]))
         except Exception as e:
-            LogHelper.error("文件读取失败 ...", e)
+            LogHelper.error("输入文件解析失败 ...", e)
 
         return [
             v.get_src().strip()
@@ -160,7 +183,8 @@ class FileManager:
         return lines_filtered, names, nicknames
 
     # 将 词语日志 写入文件
-    def write_log_to_file(self, words: list[Word], path: str, language: int) -> None:
+    @staticmethod
+    def write_log_to_file(words: list[Word], path: str, language: int) -> None:
         with open(path, "w", encoding="utf-8") as writer:
             for k, word in enumerate(words):
                 if getattr(word, "surface", "") != "":
