@@ -1,6 +1,8 @@
+import bisect
+import json
 import os
 import re
-import json
+
 
 from pecab import PeCab
 from sudachipy import Dictionary
@@ -150,7 +152,7 @@ class NER:
         super().__init__()
         self.ner = NER_SERVER()
 
-    # 加载NER黑名单文件内容  默认为 blacklist 文件夹中的所有 .json 文件
+    # 加载NER黑名单文件内容  默认检查 blacklist 文件夹中的所有 .json 文件
     @classmethod
     def load_blacklist(cls) -> None:
         try:
@@ -164,69 +166,93 @@ class NER:
             LogHelper.error("加载NER黑名单配置文件时发生错误", e)
 
     # 生成片段
-    # TODO: 优化分割算法
-    def generate_chunks(self, input_lines: list[str], chunk_size: int) -> list[str]:
-        chunks: list[str] = []
+    def generate_chunks(self, input_lines: list[str], chunk_size: int) -> tuple[list[str], list[int], list[int]]:
+        n: int = len(input_lines)
 
-        chunk = ""
+        chunks: list[str] = []
+        chunks2lines: list[int] = []
+        line_start_id: list[int] = [-1] * n
+
         chunk_length = 0
-        for line in input_lines:
+        chunk_include: list[str] = []
+        next_id: int = 0
+        for i, line in enumerate(input_lines):
             # from transformers.tokenization_utils_base import BatchEncoding
             # https://huggingface.co/docs/transformers/v4.55.4/en/internal/tokenization_utils#transformers.PreTrainedTokenizerBase.__call__
             length: int = int(self.ner.tokenizer(line, padding=False, truncation=True, max_length=chunk_size - 3, return_length=True)["length"][0])  # type: ignore
 
             if chunk_length + length > chunk_size - 3:
-                chunks.append(chunk)
-                chunk = ""
-                chunk_length = 0
+                # DEBUG
+                if chunk_length <= 0:
+                    LogHelper.error(f"NER - 分块构造算法错误 - chunk_length 值异常1: {chunk_length}")
 
-            chunk = chunk + "\n" + line
-            chunk_length = chunk_length + length + 1
+                chunks.append("\n".join(chunk_include))
+                chunks2lines.append(next_id)
+
+                chunk_length = 0
+                chunk_include = []
+                next_id = i
+
+            line_start_id[i] = chunk_length
+            chunk_length += length + 1
+            chunk_include.append(line)
 
         # 循环结束后添加最后一段
-        if len(chunk) > 0:
-            chunks.append(chunk)
+        if len(chunk_include) > 0:
+            # DEBUG
+            if chunk_length <= 0:
+                LogHelper.error(f"NER - 分块构造算法错误 - chunk_length 值异常2: {chunk_length}")
 
-        return chunks
+            chunks.append("\n".join(chunk_include))
+            chunks2lines.append(next_id)
+
+        chunks2lines.append(n)
+        # DEBUG
+        if len(chunks2lines) != len(chunks) + 1:
+            LogHelper.error(f"NER - 分块构造算法错误 -  分块数异常: {len(chunks2lines)} && {len(chunks)}")
+        return chunks, chunks2lines, line_start_id
 
     # 生成词语
+    @classmethod
     def generate_words(
-        self, text: str, line: str, nouns: dict[str, int] | None, score: float, group: str, language: int, input_lines: list[str]
+        cls, text: str, line: str, nouns: dict[str, int] | None, score: float, group: str, language: int, input_lines: list[str]
     ) -> list[Word]:
         words: list[Word] = []
 
         # 生成名词表
         if nouns is None:
-            nouns = self.generate_nouns(line, language)
+            # DEBUG
+            LogHelper.error("NER - 分块算法错误 - 名词表丢失")
+            nouns = cls.generate_nouns(line, language)
 
         # 生成词语列表
         # 当文本为英文且包含 ' 时不拆分，避免误拆复合短语
         # 当文本为中文时，使用包含空格的拆分规则
         # 否则使用不包含空格的拆分规则
-        if language == self.Language.EN and "'" in text:
+        if language == cls.Language.EN and "'" in text:
             surfaces = [text]
         else:
             surfaces = [
                 stripped
-                for v in TextHelper.split_by_punctuation(text, (language in (self.Language.ZH, self.Language.JA)))
+                for v in TextHelper.split_by_punctuation(text, (language in (cls.Language.ZH, cls.Language.JA)))
                 if (stripped := v.strip()) != ""
             ]
 
         # 遍历词语
         for surface in surfaces:
             # 按语言移除首尾无效字符
-            surface = self.strip_by_language(surface, language)
+            surface = cls.strip_by_language(surface, language)
 
             # 跳过显示长度小于等于2的词语
             if TextHelper.get_display_length(surface) <= 2:
                 continue
 
             # 按语言验证词语
-            if self.verify_by_language(surface, language) == False:
+            if cls.verify_by_language(surface, language) == False:
                 continue
 
             # 根据名词表对词语进行修正
-            surface = self.fix_by_noun_set(surface, line, nouns, language)
+            surface = cls.fix_by_noun_set(surface, line, nouns, language)
 
             word = Word()
             word.count = 1
@@ -239,7 +265,7 @@ class NER:
         return words
 
     # 生成名词表
-    # TODO: 需重新确认 “词频” 概念的精确定义  英文可能有bug(会提出标点)  未对于中文实现
+    # TODO: 需重新确认 “词频” 概念的精确定义  英文实现可能不精确,标点会被提出  未对于中文实现
     @classmethod
     def generate_nouns(cls, line: str, language: int) -> dict[str, int]:
         nouns = {}
@@ -327,6 +353,7 @@ class NER:
         return True
 
     # 查找 Token 所在的行
+    # 已弃用该函数
     def get_line_by_offset(self, text: str, lines: list[str], offsets: list[tuple[int]], start: int, end: int) -> str:
         result = ""
 
@@ -369,10 +396,9 @@ class NER:
         return line, surfaces
 
     # 查找实体词语
-    # TODO: 优化正则效率
-    # TODO: 优化 Words 构造效率
     def search_for_entity(self, input_lines: list[str], names: dict[int, str], nicknames: dict[int, str], language: int) -> tuple[list, dict]:
         words: list[Word] = []
+        line_nouns: list[dict[str, int]] = []
 
         """
         if language == self.Language.JA:
@@ -397,48 +423,35 @@ class NER:
                         surfaces.add(surface)
 
                 # 生成名词表
-                line_nouns = self.generate_nouns(line, language)
+                line_nouns.append(self.generate_nouns(line, language))
 
                 # 筛选并添加
                 for surface in surfaces:
-                    for word in self.generate_words(surface, line, line_nouns, 65535, "PER", language, input_lines):
+                    for word in self.generate_words(surface, line, line_nouns[i], self.ner.MAX_SCORE, "PER", language, input_lines):
                         seen.add(word.surface)
                         words.append(word)
 
             # 切割文本
-            chunks = self.generate_chunks(input_lines, self.MAX_LENGTH)
+            chunks, chunks2lines, line_start_id = self.generate_chunks(input_lines, self.MAX_LENGTH)
 
         # TODO: 重构分割逻辑与算法
         with ProgressHelper.get_progress() as progress:
-            pid = progress.add_task("查找实体词语", total=None)
-
-            i = 0
-            
             self.ner.start()
-            for result in self.ner.classifier((v for v in chunks), batch_size=self.ner.bacth_size):
-                # 获取当前文本
-                chunk = chunks[i]
-
-                # 计算各行的起止位置
-                chunk_lines = chunk.splitlines()
-                chunk_offsets = []
-                for line in chunk_lines:
-                    if len(chunk_offsets) == 0:
-                        start = 0
-                    else:
-                        start = chunk_offsets[-1][1]
-
-                    chunk_offsets.append((start, start + len(line) + 1))  # 字符数加上换行符的长度
-
+            pid = progress.add_task("查找实体词语", total=None)
+            for i, result in enumerate(self.ner.classifier((v for v in chunks), batch_size=self.ner.bacth_size)):
                 # 处理 NER模型 识别结果
                 for token in result:
                     text = token.get("word")
-                    line = self.get_line_by_offset(text, chunk_lines, chunk_offsets, token.get("start"), token.get("end"))
+                    index = bisect.bisect_right(line_start_id, token.get("start"), lo=chunks2lines[i], hi=chunks2lines[i + 1])
+                    # DEBUG
+                    if index == 0:
+                        LogHelper.error("NER - 分块算法构造错误 - 二分查找失败")
+                        index = 1
                     score = token.get("score")
                     entity_group = token.get("entity_group")
-                    words.extend(self.generate_words(text, line, None, score, entity_group, language, input_lines))
-
-                i = i + 1
+                    words.extend(
+                        self.generate_words(text, input_lines[index - 1], line_nouns[index - 1], score, entity_group, language, input_lines)
+                    )
                 progress.update(pid, advance=1, total=len(chunks))
             self.ner.debug_cuda_memory_info()
             self.ner.release()

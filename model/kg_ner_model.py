@@ -15,6 +15,7 @@ class NER_SERVER:
 
     MODEL_PATH = "resource/kg_ner_bf16"
     MAX_LENGTH = 512  # 与NER中的值保持一致
+    MAX_SCORE = 65535  # 提词结果 SCORE 的上界
 
     def __init__(self) -> None:
         super().__init__()
@@ -57,21 +58,23 @@ class NER_SERVER:
         )
         config.reference_compile = False
 
+        device: str = "cuda" if self.gpu_boost else "cpu"
+
         # 加载模型
         self.model: ModernBertForTokenClassification = ModernBertForTokenClassification.from_pretrained(
             self.MODEL_PATH,
-            # device="cuda" if self.gpu_boost else "cpu",
             config=config,
             attn_implementation="sdpa",
             torch_dtype=torch_dtype,
             local_files_only=True,
         )
+        self.model.to(device=device)
 
         # 加载分类器
         self.classifier: TokenClassificationPipeline = pipeline(
             "token-classification",
             model=self.model,
-            device="cuda" if self.gpu_boost else "cpu",
+            device=device,
             tokenizer=self.tokenizer,
             aggregation_strategy="simple",
         )
