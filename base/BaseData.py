@@ -1,4 +1,4 @@
-class BaseData():
+class BaseData:
 
     _TYPE_FILTER = (int, str, bool, float, list, dict, tuple)
 
@@ -9,8 +9,4 @@ class BaseData():
         return f"{type(self).__name__}({self.get_vars()})"
 
     def get_vars(self) -> dict:
-        return {
-            k: v
-            for k, v in vars(self).items()
-            if isinstance(v, BaseData._TYPE_FILTER)
-        }
+        return {k: v for k, v in vars(self).items() if isinstance(v, BaseData._TYPE_FILTER)}

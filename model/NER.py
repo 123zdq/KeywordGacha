@@ -1,22 +1,10 @@
 import os
 import re
-import gc
 import json
-import logging
-import warnings
-from typing import Generator
 
-import torch
 from pecab import PeCab
 from sudachipy import Dictionary
-from transformers import pipeline
-from transformers import AutoConfig
-from transformers import AutoTokenizer
-from transformers import PreTrainedModel
-from transformers import AutoModelForTokenClassification
-from transformers.utils import is_torch_bf16_gpu_available
-from transformers.pipelines.base import Pipeline
-from transformers.tokenization_utils_fast import PreTrainedTokenizerFast
+
 
 from model.Word import Word
 from module.Text.TextHelper import TextHelper
@@ -24,23 +12,19 @@ from module.LogManager import LogManager
 
 LogHelper = LogManager.get()
 from module.ProgressHelper import ProgressHelper
+from model.kg_ner_model import NER_SERVER
 
 
 class NER:
-
     # 语言模式
     class Language:
-
         ZH = 100
         EN = 200
         JA = 300
         KO = 400
 
     # 片段长度
-    MAX_LENGTH = 512
-
-    # 模型路径
-    MODEL_PATH = "resource/kg_ner_bf16"
+    MAX_LENGTH = NER_SERVER.MAX_LENGTH
 
     # 伪名列表
     FAKE_NAME = [
@@ -146,115 +130,50 @@ class NER:
         "雨夜雫",  # 雨夜的滴落
     ]
 
+    # 各语言分词器
+    SUDACHI = Dictionary().create()  # 日文
+    PECAB = PeCab()  # 韩文
+
+    # 预编译正则表达式
+    # 名词表 英
+    PATTERN_1 = re.compile(r"\b(.+?)\b")
+    # 代码转名
+    PATTERN_2 = re.compile(r"\\n\[(\d+)\]", flags=re.IGNORECASE)
+    PATTERN_3 = re.compile(r"\\nn\[(\d+)\]", flags=re.IGNORECASE)
+    # 匹配姓名框
+    PATTERN_4 = re.compile(r"【(.*?)】")
+
+    # NER黑名单
+    BLACKLIST: set[str] = set()
+
     def __init__(self) -> None:
         super().__init__()
+        self.ner = NER_SERVER()
 
-        # 设置日志过滤器
-        logging.getLogger("transformers.pipelines.base").filter = lambda record: "Device set to use" not in record.msg
-
-        # 初始化
-        self.gpu_boost = torch.cuda.is_available()
-        self.bacth_size = 32 if self.gpu_boost else 1
-
-        # 加载模型
-        self.model = self.load_model(NER.MODEL_PATH, self.gpu_boost)
-        self.tokenizer = self.load_tokenizer(NER.MODEL_PATH)
-        self.classifier = self.load_classifier(self.model, self.gpu_boost)
-
-    # 释放资源
-    def release(self) -> None:
-        LogHelper.debug(f"显存保留量 - {torch.cuda.memory_reserved()/1024/1024:>8.2f} MB")
-        LogHelper.debug(f"显存分配量 - {torch.cuda.memory_allocated()/1024/1024:>8.2f} MB")
-
-        del self.model
-        del self.tokenizer
-        del self.classifier
-
-        gc.collect()
-        torch.cuda.empty_cache()
-        LogHelper.debug(f"显存保留量 - {torch.cuda.memory_reserved()/1024/1024:>8.2f} MB")
-        LogHelper.debug(f"显存分配量 - {torch.cuda.memory_allocated()/1024/1024:>8.2f} MB")
-
-    # 生成器
-    def generator(self, chunks: list) -> Generator:
-        for chunk in chunks:
-            yield chunk
-
-    # 加载黑名单文件内容
-    def load_blacklist(self) -> None:
-        self.blacklist:set[str] = set()
-
+    # 加载NER黑名单文件内容  默认为 blacklist 文件夹中的所有 .json 文件
+    @classmethod
+    def load_blacklist(cls) -> None:
         try:
             for entry in os.scandir("blacklist"):
                 if entry.is_file() and entry.name.endswith(".json"):
                     with open(entry.path, "r", encoding="utf-8-sig") as reader:
                         for v in json.load(reader):
                             if v.get("srt") != None:
-                                self.blacklist.add(v.get("srt"))
+                                cls.BLACKLIST.add(v.get("srt"))
         except Exception as e:
-            LogHelper.error("加载配置文件时发生错误", e)
-
-    # 加载模型
-    def load_model(self, model_path: str, gpu_boost: bool) -> PreTrainedModel:
-        # 根据配置选择使用数据类型
-        if gpu_boost == False:
-            torch_dtype = torch.float32
-        elif is_torch_bf16_gpu_available() == True:
-            torch_dtype = torch.bfloat16
-        else:
-            torch_dtype = torch.float16
-
-        # 创建配置，并关闭 reference_compile
-        config = AutoConfig.from_pretrained(
-            model_path,
-            local_files_only=True,
-            trust_remote_code=True,
-        )
-        config.reference_compile = False
-
-        return AutoModelForTokenClassification.from_pretrained(
-            model_path,
-            config=config,
-            attn_implementation="sdpa",
-            torch_dtype=torch_dtype,
-            local_files_only=True,
-        )
-
-    # 加载分词器
-    def load_tokenizer(self, model_path: str) -> PreTrainedTokenizerFast:
-        return AutoTokenizer.from_pretrained(
-            model_path,
-            padding="max_length",
-            truncation=True,
-            max_length=NER.MAX_LENGTH,
-            model_max_length=NER.MAX_LENGTH,
-            local_files_only=True,
-        )
-
-    # 加载分类器
-    def load_classifier(self, model: PreTrainedModel, gpu_boost: bool) -> Pipeline:
-        return pipeline(
-            "token-classification",
-            model=model,
-            device="cuda" if gpu_boost else "cpu",
-            tokenizer=self.tokenizer,
-            aggregation_strategy="simple",
-        )
+            LogHelper.error("加载NER黑名单配置文件时发生错误", e)
 
     # 生成片段
+    # TODO: 优化分割算法
     def generate_chunks(self, input_lines: list[str], chunk_size: int) -> list[str]:
-        chunks : list[str] = []
+        chunks: list[str] = []
 
         chunk = ""
         chunk_length = 0
         for line in input_lines:
-            encoding = self.tokenizer(
-                line,
-                padding=False,
-                truncation=True,
-                max_length=chunk_size - 3,
-            )
-            length = len(encoding.input_ids)
+            # from transformers.tokenization_utils_base import BatchEncoding
+            # https://huggingface.co/docs/transformers/v4.55.4/en/internal/tokenization_utils#transformers.PreTrainedTokenizerBase.__call__
+            length: int = int(self.ner.tokenizer(line, padding=False, truncation=True, max_length=chunk_size - 3, return_length=True)["length"][0])  # type: ignore
 
             if chunk_length + length > chunk_size - 3:
                 chunks.append(chunk)
@@ -271,13 +190,14 @@ class NER:
         return chunks
 
     # 生成词语
-    # TODO: 优化 split_by_punctuation 调用
-    # TODO: 优化 generate_nouns 调用
-    def generate_words(self, text: str, line: str, score: float, group: str, language: int, input_lines: list[str]) -> list[Word]:
+    def generate_words(
+        self, text: str, line: str, nouns: dict[str, int] | None, score: float, group: str, language: int, input_lines: list[str]
+    ) -> list[Word]:
         words: list[Word] = []
 
         # 生成名词表
-        nouns = self.generate_nouns(line, language)
+        if nouns is None:
+            nouns = self.generate_nouns(line, language)
 
         # 生成词语列表
         # 当文本为英文且包含 ' 时不拆分，避免误拆复合短语
@@ -285,10 +205,12 @@ class NER:
         # 否则使用不包含空格的拆分规则
         if language == self.Language.EN and "'" in text:
             surfaces = [text]
-        elif language in (self.Language.ZH, self.Language.JA):
-            surfaces = [v.strip() for v in TextHelper.split_by_punctuation(text, True) if v.strip() != ""]
         else:
-            surfaces = [v.strip() for v in TextHelper.split_by_punctuation(text, False) if v.strip() != ""]
+            surfaces = [
+                stripped
+                for v in TextHelper.split_by_punctuation(text, (language in (self.Language.ZH, self.Language.JA)))
+                if (stripped := v.strip()) != ""
+            ]
 
         # 遍历词语
         for surface in surfaces:
@@ -317,19 +239,19 @@ class NER:
         return words
 
     # 生成名词表
-    # TODO: 优化正则效率
-    # TODO: 需重新确认 “词频” 概念的精确定义  英文时可能有bug  未实现中文
-    def generate_nouns(self, line: str, language: int) -> dict[str, int]:
+    # TODO: 需重新确认 “词频” 概念的精确定义  英文可能有bug(会提出标点)  未对于中文实现
+    @classmethod
+    def generate_nouns(cls, line: str, language: int) -> dict[str, int]:
         nouns = {}
 
-        # 语言为英语
-        if language == self.Language.EN:
-            nouns = {surface: line.count(surface) for surface in re.findall(r"\b(.+?)\b", line)}
+        # 英
+        if language == cls.Language.EN:
+            nouns = {surface: line.count(surface) for surface in cls.PATTERN_1.findall(line)}
 
-        # 语言为日语
-        elif language == self.Language.JA:
+        # 日
+        elif language == cls.Language.JA:
             # 获取名词表
-            for token in self.sudachi.tokenize(line):
+            for token in cls.SUDACHI.tokenize(line):
                 # 获取表面形态
                 surface = token.surface()
                 # 跳过包含至少一个标点符号的条目
@@ -340,35 +262,33 @@ class NER:
                     continue
                 nouns[surface] = line.count(surface)
 
-        # 语言为韩语
-        elif language == self.Language.KO:
-            nouns: dict[str, int] = {surface: line.count(surface) for surface in self.pecab.nouns(line)}
+        # 韩
+        elif language == cls.Language.KO:
+            nouns: dict[str, int] = {surface: line.count(surface) for surface in cls.PECAB.nouns(line)}
 
         return nouns
 
     # 根据名词表修正词语
-    def fix_by_noun_set(self, text: str, line: str, nouns: dict[str, int], language: int) -> str:
-        # 只有英日韩有名词表  中文没有名词表  不修中文
-        if language not in (self.Language.EN, self.Language.JA, self.Language.KO):
+    @classmethod
+    def fix_by_noun_set(cls, text: str, line: str, nouns: dict[str, int], language: int) -> str:
+        # 中文无名词表 不修
+        if language not in (cls.Language.EN, cls.Language.JA, cls.Language.KO):
+            return text
+
+        def fix_single_text(text: str) -> str:
+            lc = line.count(text)
+            for noun, count in nouns.items():
+                if lc == count and len(text) < len(noun) and text in noun:
+                    return noun
             return text
 
         if " " not in text:
-            for noun, count in nouns.items():
-                if text in noun and text != noun and line.count(text) == count:
-                    text = noun
-                    break
+            text = fix_single_text(text)
         else:
             splited = text.split(" ")
-            for i, t in enumerate((splited[0], splited[-1])):
-                for noun, count in nouns.items():
-                    if t in noun and t != noun and line.count(t) == count:
-                        if i == 0:
-                            splited[0] = noun
-                        elif i == 1:
-                            splited[-1] = noun
-                        break
+            splited[0] = fix_single_text(splited[0])
+            splited[-1] = fix_single_text(splited[-1])
             text = " ".join(splited)
-
         return text
 
     # 按语言移除首尾无效字符  未知语言时返回原串
@@ -389,19 +309,20 @@ class NER:
         return text
 
     # 按语言进行验证  未知语言时返回True
-    def verify_by_language(self, text: str, language: int) -> bool:
-        if text.lower() in self.blacklist:
+    @classmethod
+    def verify_by_language(cls, text: str, language: int) -> bool:
+        if text.lower() in cls.BLACKLIST:
             return False
-        if language == self.Language.ZH:
+        if language == cls.Language.ZH:
             return TextHelper.CJK.any(text)
-        if language == self.Language.EN:
-            # 如果首字母小写 则排除
+        if language == cls.Language.EN:
+            # 首字母小写则False
             if not text[0].isupper():
                 return False
             return TextHelper.Latin.any(text)
-        if language == self.Language.JA:
+        if language == cls.Language.JA:
             return TextHelper.JA.any(text)
-        if language == self.Language.KO:
+        if language == cls.Language.KO:
             return TextHelper.KO.any(text)
         return True
 
@@ -420,8 +341,7 @@ class NER:
 
         return result
 
-    # 代码转换为姓名   例如 角色代码 \N[123] -> 姓名
-    # TODO: 优化正则效率
+    # 代码转换为姓名   例如 角色代码 \N[123] -> 姓名  并统计新转的姓名集
     @classmethod
     def code_to_name(
         cls, line: str, names: dict[int, str], nicknames: dict[int, str], fake_name_mapping: dict[str, str]
@@ -443,58 +363,59 @@ class NER:
             return fname
 
         # 根据 actors 中的数据还原 角色代码 \N[123] 实际指向的名字
-        line = re.sub(r"\\n\[(\d+)\]", lambda match: repl(match, names), line, flags=re.IGNORECASE)
-
+        line = cls.PATTERN_2.sub(lambda match: repl(match, names), line)
         # 根据 actors 中的数据还原 角色代码 \NN[123] 实际指向的名字
-        line = re.sub(r"\\nn\[(\d+)\]", lambda match: repl(match, nicknames), line, flags=re.IGNORECASE)
-
+        line = cls.PATTERN_3.sub(lambda match: repl(match, nicknames), line)
         return line, surfaces
 
     # 查找实体词语
     # TODO: 优化正则效率
     # TODO: 优化 Words 构造效率
-    def search_for_entity(self, input_lines: list[str], names: dict[int,str], nicknames: dict[int,str], language: int) -> tuple[list, dict]:
-        words : list[Word] = []
+    def search_for_entity(self, input_lines: list[str], names: dict[int, str], nicknames: dict[int, str], language: int) -> tuple[list, dict]:
+        words: list[Word] = []
 
+        """
         if language == self.Language.JA:
             self.sudachi = Dictionary().create()
         elif language == self.Language.KO:
             self.pecab = PeCab()
             # warnings.filterwarnings("ignore", message="overflow encountered in scalar add")
-
-        if self.gpu_boost:
-            LogHelper.info("检测到有效的 [green]GPU[/] 环境，已启用 [green]GPU[/] 加速 ...")
-        else:
-            LogHelper.warning("未检测到有效的 [green]GPU[/] 环境，无法启用 [green]GPU[/] 加速 ...")
+        """
 
         LogHelper.print("")
         with LogHelper.status("正在对文本进行预处理 ..."):
-            seen : set[str] = set()
-            fake_name_mapping:dict[str,str] = {}
+            seen: set[str] = set()
+            fake_name_mapping: dict[str, str] = {}
             for i, line in enumerate(input_lines):
                 # 代码转换为姓名
                 line, surfaces = self.code_to_name(line, names, nicknames, fake_name_mapping)
                 input_lines[i] = line
 
                 # 匹配姓名框
-                for surface in re.findall(r"【(.*?)】", line):
+                for surface in self.PATTERN_4.findall(line):
                     if TextHelper.get_display_length(surface) <= 16:
                         surfaces.add(surface)
 
+                # 生成名词表
+                line_nouns = self.generate_nouns(line, language)
+
                 # 筛选并添加
                 for surface in surfaces:
-                    for word in self.generate_words(surface, line, 65535, "PER", language, input_lines):
-                        seen.add(word.surface)  # if word.surface not in seen else None
+                    for word in self.generate_words(surface, line, line_nouns, 65535, "PER", language, input_lines):
+                        seen.add(word.surface)
                         words.append(word)
 
             # 切割文本
             chunks = self.generate_chunks(input_lines, self.MAX_LENGTH)
 
+        # TODO: 重构分割逻辑与算法
         with ProgressHelper.get_progress() as progress:
             pid = progress.add_task("查找实体词语", total=None)
 
             i = 0
-            for result in self.classifier(self.generator(chunks), batch_size=self.bacth_size):
+            
+            self.ner.start()
+            for result in self.ner.classifier((v for v in chunks), batch_size=self.ner.bacth_size):
                 # 获取当前文本
                 chunk = chunks[i]
 
@@ -515,10 +436,13 @@ class NER:
                     line = self.get_line_by_offset(text, chunk_lines, chunk_offsets, token.get("start"), token.get("end"))
                     score = token.get("score")
                     entity_group = token.get("entity_group")
-                    words.extend(self.generate_words(text, line, score, entity_group, language, input_lines))
+                    words.extend(self.generate_words(text, line, None, score, entity_group, language, input_lines))
 
                 i = i + 1
                 progress.update(pid, advance=1, total=len(chunks))
+            self.ner.debug_cuda_memory_info()
+            self.ner.release()
+            self.ner.debug_cuda_memory_info()
 
         # 打印通过模式匹配抓取的角色实体
         LogHelper.print("")
@@ -527,8 +451,5 @@ class NER:
             fake_name_mapping_ex = {v: k for k, v in fake_name_mapping.items()}
             surfaces = [fake_name_mapping_ex.get(surface, surface) for surface in seen]
             LogHelper.info(f"[查找实体词语] 通过 [green]模式匹配[/] 抓取到角色实体 - {", ".join(surfaces)}")
-
-        # 释放显存
-        self.release() if self.gpu_boost else None
 
         return words, fake_name_mapping
