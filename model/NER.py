@@ -434,7 +434,6 @@ class NER:
             # 切割文本
             chunks, chunks2lines, line_start_id = self.generate_chunks(input_lines, self.MAX_LENGTH)
 
-        # TODO: 重构分割逻辑与算法
         with ProgressHelper.get_progress() as progress:
             self.ner.start()
             pid = progress.add_task("查找实体词语", total=None)
