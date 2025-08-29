@@ -5,10 +5,11 @@ __pycache__/
 /*dist/
 wheels/
 *.egg-info
+.spec
 
 /resource/*ner*
-/log/
+/log*
 /*.log
 /input/
 /output/
-/*private.json
+*private.json

@@ -21,15 +21,11 @@ v0.14.2
 
 # 快速开始
 
->`config.json` 既是 默认配置 也是 配置说明文档，不建议直接修改
-
-* 在同目录下复制一份 `config.json` 并重命名为 `config_private.json`，按需编辑
-
-> 生效优先级：`config_private.json` $>$ `config.json`
+* 在 `config` 目录下，找到并复制一份 `config.json` ，将其重命名为 `config_private.json` 并按需编辑
 
 * 将需要处理的文本放入 `input` 文件夹
 
-* 运行 `python app.py`，等待处理结束 
+* `python src/app.py`，等待处理结束 
 
 * 从 `output` 文件夹取出结果
 
@@ -41,11 +37,14 @@ v0.14.2
 
 * LLM接口：openAI 协议
 
-关于 `config_private.json`
-* 只需包含与默认配置 `config.json` 中不同的项即可
+* 生效优先级：`config/config_private.json` $>$ `config/config.json`
+
+* `config.json` 既是 默认配置 也是 配置说明文档，不建议直接修改
+
+* `config_private.json` 只需包含与默认配置 `config.json` 中不同的项即可
 * git 不会追踪 `config_private.json`
 
-一个填写样例如下：
+一个 `config_private.json` 的样例如下：
 ```json
 {
     "base_url": [
