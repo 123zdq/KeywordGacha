@@ -12,10 +12,9 @@ from module.LogManager import LogManager
 
 
 class NER_SERVER:
-
     MODEL_PATH = "resource/kg_ner_bf16"
-    MAX_LENGTH = 512  # 与NER中的值保持一致
-    MAX_SCORE = 65535  # 提词结果 SCORE 的上界
+    MAX_LENGTH = 512  # 与 NER.py 中的该值保持一致
+    SCORE_INF = 65535  # 提词结果 SCORE 值的上界
 
     def __init__(self) -> None:
         super().__init__()
@@ -37,7 +36,7 @@ class NER_SERVER:
             max_length=self.MAX_LENGTH,
         )
 
-    # 加载模型
+    # 加载显存资源
     def start(self) -> None:
         if self.gpu_boost:
             self.logger.info("检测到有效的 [green]GPU[/] 环境，已启用 [green]GPU[/] 加速 ...")
@@ -79,7 +78,7 @@ class NER_SERVER:
             aggregation_strategy="simple",
         )
 
-    # 释放资源
+    # 释放显存资源
     def release(self) -> None:
         del self.model
         del self.classifier

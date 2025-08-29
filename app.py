@@ -42,17 +42,27 @@ def format_duration(seconds: float) -> str:
 
 # 合并词语
 def merge_words(words: list[Word]) -> list[Word]:
-    words_unique = {}
+    words_unique: dict[str, Word] = {}
     for word in words:
-        words_unique.setdefault(word.surface, []).append(word)
-
-    words_merged = []
+        w = words_unique.get(word.surface)
+        if w is None:
+            words_unique[word.surface] = word
+        else:
+            w.score = min(0.9999, max(w.score, word.score))
+    return list(words_unique.values())
+    """
     for v in words_unique.values():
         word = v[0]
         word.score = min(0.9999, max(w.score for w in v))
         words_merged.append(word)
+    
+    # DEBUG 这里的所有count必然为1, 排序是多余的
+    for v in words_merged:
+        if v.count!=1:
+            LogHelper.error("word.count 预期外行为")
 
     return sorted(words_merged, key=lambda x: x.count, reverse=True)
+    """
 
 
 # 搜索参考文本，并按出现次数排序
@@ -73,8 +83,8 @@ def search_for_context(words: list[Word], input_lines: list[str]) -> list[Word]:
             index = {i for i, line in enumerate(input_lines_ex) if word.surface in line}
 
             # 获取匹配的参考文本，去重，并按长度降序排序
-            word.context = {line for i, line in enumerate(input_lines) if i in index}
-            word.context = sorted(list(word.context), key=lambda v: len(v), reverse=True)
+            word.context = list({line for i, line in enumerate(input_lines) if i in index})
+            word.context = sorted(word.context, key=lambda v: len(v), reverse=True)
             word.count = len(word.context)
             word.group = "未知类型"
 
@@ -129,7 +139,7 @@ async def process_text(llm: LLM, ner: NER, file_manager: FileManager, config: Si
     words = merge_words(words)
 
     # 调试功能
-    TestHelper.check_score_threshold(words, "log_score_threshold.log")
+    # TestHelper.check_score_threshold(words, "log/log_score_threshold.log")
 
     # 置信度阈值过滤
     LogHelper.info(f"即将开始执行 [置信度阈值]，当前置信度的阈值为 {SCORE_THRESHOLD:.4f} ...")

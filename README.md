@@ -2,53 +2,54 @@
 
 
 
-本项目是基于 [KeywordGacha v0.14.0](https://github.com/neavo/KeywordGacha/tree/b1379be69a6b4d06d5e00b5a551cbb7350feadd3) 的二次开发版本，旨在保留该版本的核心特性并增强自动化体验
+本项目是基于 [KeywordGacha v0.14.0](https://github.com/neavo/KeywordGacha/tree/b1379be69a6b4d06d5e00b5a551cbb7350feadd3) 的二次开发版本，旨在 **保留V14.0的核心特性** 并针对 **本地工作流** 增强自动化体验
 
 ### 主要变化
 v0.14.2
 * 增强了配置文件，移除了运行时所需的键盘输入
-* 适配了引导解码（已支持的后端：vllm、llama.cpp），现在本地模型会 **严格地遵循格式** 来回应词义分析任务
+* （实验性支持）适配了引导解码
+* * 支持的后端：vllm、llama.cpp
+
+> 说明
+与提示词的软限制不同，通过引导解码技术，遵循格式指令能力较差的本地小模型（例如Qwen3-30B）也能 **严格地遵循格式** 来回应词义分析任务
 
 ### to-do
-* 遵循原版逻辑的基础上，重构代码以修复bug和优化性能 （进行中，20%）
-* 分离 词义分析任务 与 术语翻译任务
+* 分离 词义分析 与 术语翻译 任务
 * 与 linguagacha 更加自动化地对接
-* 改进原版逻辑与核心功能
 
 
 
-# 使用
+# 快速开始
 
-0. 将 `config.json` 复制一份并重命名为 `config_private.json`
+>`config.json` 既是 默认配置 也是 配置说明文档，不建议直接修改
 
-1. 按需编辑 `config_private.json` 文件
+* 在同目录下复制一份 `config.json` 并重命名为 `config_private.json`，按需编辑
 
-2. 将需要处理的文本放入 `input` 文件夹
+> 生效优先级：`config_private.json` $>$ `config.json`
 
-3. 运行 `python app.py` 
+* 将需要处理的文本放入 `input` 文件夹
 
-4. 等待程序运行结束，从 `output` 文件夹取出结果
+* 运行 `python app.py`，等待处理结束 
+
+* 从 `output` 文件夹取出结果
 
 
 
 # 说明
 
-* `config.json` 同时作为 默认配置 和 配置文档，不建议直接修改
+* [支持的文本格式](https://github.com/neavo/KeywordGacha/tree/b1379be69a6b4d06d5e00b5a551cbb7350feadd3?tab=readme-ov-file#%E6%96%87%E6%9C%AC%E6%A0%BC%E5%BC%8F-%EF%B8%8F) 与原版一致
 
-* git 会忽略 `config_private.json`，以防止在自动更新时丢失配置
+* LLM接口：openAI 协议
 
-* 配置生效优先级：`config_private.json` $>$ `config.json`
+关于 `config_private.json`
+* 只需包含与默认配置 `config.json` 中不同的项即可
+* git 不会追踪 `config_private.json`
 
-* 假设后端为兼容 openAI 协议的 LLM 服务器
-
-* `config_private.json` 只需包含与 `config.json` 不同的项
-
-`config_private.json` 的一个填写样例：
-
+一个填写样例如下：
 ```json
 {
     "base_url": [
-        "http://192.168.5.147:11451/v1",
+        "http://192.168.66.666:6666/v1",
         "请求地址，从接口平台方获取，使用在线接口时一定要设置正确。"
     ],
     "model_name": [

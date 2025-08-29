@@ -385,6 +385,8 @@ class NER:
                         fname = cls.FAKE_NAME.pop()
                         fake_name_mapping[name] = fname
                     else:
+                        # DEBUG
+                        LogHelper.error("NER - 假名表耗尽")
                         return match.group(0)
             surfaces.add(fname)
             return fname
@@ -396,7 +398,10 @@ class NER:
         return line, surfaces
 
     # 查找实体词语
-    def search_for_entity(self, input_lines: list[str], names: dict[int, str], nicknames: dict[int, str], language: int) -> tuple[list, dict]:
+    # TODO: 考虑是否需要在该步结束后将假名池复原
+    def search_for_entity(
+        self, input_lines: list[str], names: dict[int, str], nicknames: dict[int, str], language: int
+    ) -> tuple[list[Word], dict[str, str]]:
         words: list[Word] = []
         line_nouns: list[dict[str, int]] = []
 
@@ -427,7 +432,7 @@ class NER:
 
                 # 筛选并添加
                 for surface in surfaces:
-                    for word in self.generate_words(surface, line, line_nouns[i], self.ner.MAX_SCORE, "PER", language, input_lines):
+                    for word in self.generate_words(surface, line, line_nouns[i], self.ner.SCORE_INF, "PER", language, input_lines):
                         seen.add(word.surface)
                         words.append(word)
 
