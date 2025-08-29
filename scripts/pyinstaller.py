@@ -9,14 +9,14 @@ def get_pip_root() -> str:
 
 
 cmd = [
-    "./app.py",
+    "src/app.py",
     "--clean",  # Clean PyInstaller cache and remove temporary files before building
     # "--icon=./resource/icon.ico",
     "--onedir",  # Create a one-folder bundle containing an executable (default)
     # "--onefile", # Create a one-file bundled executable
     "--noconfirm",  # Replace output directory (default: SPECPATH/dist/SPECNAME) without asking for confirmation
-    "--distpath=./dist",  # Where to put the bundled app (default: ./dist)
-    
+    "--distpath=dist",  # Where to put the bundled app (default: ./dist)
+
     # 对于 tiktoken pecab pykakasi 这3个库 务必加这几行避免报错：
     "--hidden-import=tiktoken_ext.openai_public",
     "--hidden-import=tiktoken_ext",
@@ -27,7 +27,3 @@ cmd = [
 
 # 执行打包
 PyInstaller.__main__.run(cmd)
-
-# 可选项
-os.remove("*.spec")
-os.removedirs("build")
