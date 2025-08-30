@@ -16,7 +16,7 @@ odir = "dist"
 
 cmd = [
     "src/app.py",
-    "name="+name,
+    "--name="+name,
     f"--paths={pwd}",  # 导入项目根目录
     "--clean",  # Clean PyInstaller cache and remove temporary files before building
     # "--icon=./resource/icon.ico",
