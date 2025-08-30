@@ -1,0 +1,13 @@
+# Get
+
+git clone https://github.com/123zdq/KeywordGacha.git
+cd KeywordGacha
+
+
+
+# Build
+
+uv sync
+uv pip install pyinstaller
+uv run scripts/pyinstaller.py
+uv sync

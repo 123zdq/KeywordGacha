@@ -24,7 +24,6 @@ from src.module.FileManager import FileManager
 
 # import argparse
 import time
-import sys
 
 start_time = time.time()
 
