@@ -257,7 +257,7 @@ def print_app_info(config: SimpleNamespace, version: str) -> None:
         table.add_row(*row)
     LogHelper.print(table)
 
-    LogHelper.print("请编辑 [green]config/config_private.json[/] 文件来修改上表中的设置\n")
+    LogHelper.print("请编辑 [green]config_private.json[/] 文件来修改上表中的设置\n")
 
 
 # 打印菜单
@@ -314,10 +314,10 @@ def load_config() -> tuple[LLM, NER, FileManager, SimpleNamespace, str]:  # args
 
         try:
             # 优先使用开发环境配置文件
-            if not os.path.isfile("config/config_dev.json"):
-                path = "config/config.json"
+            if not os.path.isfile("resources/config/config_dev.json"):
+                path = "resources/config/config.json"
             else:
-                path = "config/config_dev.json"
+                path = "resources/config/config_dev.json"
 
             # 读取配置文件
             with open(path, "r", encoding="utf-8-sig") as reader:
@@ -325,12 +325,12 @@ def load_config() -> tuple[LLM, NER, FileManager, SimpleNamespace, str]:  # args
                     setattr(config, k, v[0])
 
             # 读取私有配置文件
-            with open("config/config_private.json", "r", encoding="utf-8-sig") as reader:
+            with open("resources/config/config_private.json", "r", encoding="utf-8-sig") as reader:
                 for k, v in json.load(reader).items():
                     setattr(config, k, v[0])
 
             # 读取版本号文件
-            with open("resource/version.txt", "r", encoding="utf-8-sig") as reader:
+            with open("resources/version.txt", "r", encoding="utf-8-sig") as reader:
                 version = reader.read().strip()
         except Exception as e:
             LogHelper.error("配置文件读取失败 ...", e)

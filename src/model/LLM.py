@@ -94,19 +94,19 @@ class LLM:
     # 加载指令
     def load_prompt(self) -> None:
         try:
-            with open("config/prompt/prompt_context_translate.txt", "r", encoding = "utf-8-sig") as reader:
+            with open("resources/config/prompt/prompt_context_translate.txt", "r", encoding = "utf-8-sig") as reader:
                 self.prompt_context_translate = reader.read().strip()
         except Exception as e:
             LogHelper.error("加载配置文件时发生错误",e)
 
         try:
-            with open("config/prompt/prompt_surface_analysis_with_translation.txt", "r", encoding = "utf-8-sig") as reader:
+            with open("resources/config/prompt/prompt_surface_analysis_with_translation.txt", "r", encoding = "utf-8-sig") as reader:
                 self.prompt_surface_analysis_with_translation = reader.read().strip()
         except Exception as e:
             LogHelper.error("加载配置文件时发生错误",e)
 
         try:
-            with open("config/prompt/prompt_surface_analysis_without_translation.txt", "r", encoding = "utf-8-sig") as reader:
+            with open("resources/config/prompt/prompt_surface_analysis_without_translation.txt", "r", encoding = "utf-8-sig") as reader:
                 self.prompt_surface_analysis_without_translation = reader.read().strip()
         except Exception as e:
             LogHelper.error("加载配置文件时发生错误",e)
@@ -114,19 +114,19 @@ class LLM:
     # 加载配置文件
     def load_llm_config(self) -> None:
         try:
-            with open("config/llm_config/api_test_config.json", "r", encoding = "utf-8-sig") as reader:
+            with open("resources/config/llm_config/api_test_config.json", "r", encoding = "utf-8-sig") as reader:
                 self.api_test_config = repair.load(reader)
         except Exception as e:
             LogHelper.error("加载配置文件时发生错误",e)
 
         try:
-            with open("config/llm_config/surface_analysis_config.json", "r", encoding = "utf-8-sig") as reader:
+            with open("resources/config/llm_config/surface_analysis_config.json", "r", encoding = "utf-8-sig") as reader:
                 self.surface_analysis_config = repair.load(reader)
         except Exception as e:
             LogHelper.error("加载配置文件时发生错误",e)
 
         try:
-            with open("config/llm_config/context_translate_config.json", "r", encoding = "utf-8-sig") as reader:
+            with open("resources/config/llm_config/context_translate_config.json", "r", encoding = "utf-8-sig") as reader:
                 self.context_translate_config = repair.load(reader)
         except Exception as e:
             LogHelper.error("加载配置文件时发生错误",e)

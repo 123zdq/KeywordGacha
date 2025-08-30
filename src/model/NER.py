@@ -156,7 +156,7 @@ class NER:
     @classmethod
     def load_blacklist(cls) -> None:
         try:
-            for entry in os.scandir("config/blacklist"):
+            for entry in os.scandir("resources/config/blacklist"):
                 if entry.is_file() and entry.name.endswith(".json"):
                     with open(entry.path, "r", encoding="utf-8-sig") as reader:
                         for v in json.load(reader):

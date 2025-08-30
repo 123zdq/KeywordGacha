@@ -10,8 +10,10 @@ site_packages = Path(sys.prefix) / "Lib" / "site-packages"
 # 工作目录 (项目根目录)
 pwd = Path(__file__).parent.parent
 
+# 打包后的软件名称
 name = "KeywordGacha"
 
+# 打包的输出目录
 odir = "dist"
 
 cmd = [
@@ -39,9 +41,8 @@ rmtree(pwd / odir, ignore_errors=True)
 PyInstaller.__main__.run(cmd)
 
 # 复制资源
-copytree(pwd / "resource", pwd / odir / name / "resource")
-copytree(pwd / "config", pwd / odir / name / "config")
+copytree(pwd / "resources", pwd / odir / name / "resources")
 
 # (可选)清理打包过程中产生的文件
-(pwd / "app.spec").unlink(missing_ok=True)
+(pwd / (name + ".spec")).unlink(missing_ok=True)
 rmtree(pwd / "build", ignore_errors=True)

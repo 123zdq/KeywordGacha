@@ -9,5 +9,5 @@ cd KeywordGacha
 
 uv sync
 uv pip install pyinstaller
-uv run scripts/pyinstaller.py
+uv run build_support/pyinstaller.py
 uv sync

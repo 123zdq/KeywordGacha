@@ -12,7 +12,7 @@ from src.module.LogManager import LogManager
 
 
 class NER_SERVER:
-    MODEL_PATH = "resource/kg_ner_bf16"
+    MODEL_PATH = "resources/kg_ner_bf16"
     MAX_LENGTH = 512  # 与 NER.py 中的该值保持一致
     SCORE_INF = 65535  # 提词结果 SCORE 值的上界
 

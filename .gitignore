@@ -7,7 +7,7 @@ wheels/
 *.egg-info
 *.spec
 
-/resource/*ner*
+/resources/*ner*
 /log*
 /*.log
 /input/
