@@ -1,13 +1,13 @@
-import re
 import itertools
+import re
 
+from src.base.Base import TextType
 from src.module.File.TRANS.NONE import NONE
-from src.module.Cache.CacheItem import CacheItem
 
 
 class WOLF(NONE):
 
-    TEXT_TYPE: str = CacheItem.TextType.WOLF
+    TEXT_TYPE: str = TextType.WOLF
 
     WHITELIST_ADDRESS: tuple[re.Pattern] = (
         re.compile(r"/Database/stringArgs/0$", flags = re.IGNORECASE),

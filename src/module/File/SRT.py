@@ -1,10 +1,11 @@
 import os
 import re
 
-from src.base.Base import Base
+from src.base.Base import FileType
 from src.module.Cache.CacheItem import CacheItem
 
-class SRT(Base):
+
+class SRT:
 
     # 1
     # 00:00:08,120 --> 00:00:10,460
@@ -39,7 +40,7 @@ class SRT(Base):
                 rel_path = abs_path
 
             # 数据处理
-            with open(abs_path, "r", encoding = "utf-8-sig") as reader:
+            with open(abs_path, encoding = "utf-8-sig") as reader:
                 chunks = re.split(r"\n{2,}", reader.read().strip())
                 for chunk in chunks:
                     lines = [line.strip() for line in chunk.splitlines()]
@@ -63,7 +64,7 @@ class SRT(Base):
                                 "dst": "\n".join(lines[2:]),            # 如有多行文本则用换行符拼接
                                 "extra_field": lines[1],
                                 "row": str(lines[0]),
-                                "file_type": CacheItem.FileType.SRT,
+                                "file_type": FileType.SRT,
                                 "file_path": rel_path,
                             })
                         )

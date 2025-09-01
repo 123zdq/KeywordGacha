@@ -1,9 +1,10 @@
 import os
 
-from src.base.Base import Base
+from src.base.Base import FileType
 from src.module.Cache.CacheItem import CacheItem
 
-class TXT(Base):
+
+class TXT:
 
     def __init__(self, config: dict) -> None:
         super().__init__()
@@ -26,14 +27,14 @@ class TXT(Base):
                 rel_path = abs_path
 
             # 数据处理
-            with open(abs_path, "r", encoding = "utf-8-sig") as reader:
+            with open(abs_path, encoding = "utf-8-sig") as reader:
                 for line in [line.removesuffix("\n") for line in reader.readlines()]:
                     items.append(
                         CacheItem({
                             "src": line,
                             "dst": line,
                             "row": len(items),
-                            "file_type": CacheItem.FileType.TXT,
+                            "file_type": FileType.TXT,
                             "file_path": rel_path,
                         })
                     )

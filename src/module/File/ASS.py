@@ -1,9 +1,10 @@
 import os
 
-from src.base.Base import Base
+from src.base.Base import FileType
 from src.module.Cache.CacheItem import CacheItem
 
-class ASS(Base):
+
+class ASS:
 
     # [Script Info]
     # ; This is an Advanced Sub Station Alpha v4+ script.
@@ -43,7 +44,7 @@ class ASS(Base):
                 rel_path = abs_path
 
             # 数据处理
-            with open(abs_path, "r", encoding = "utf-8-sig") as reader:
+            with open(abs_path, encoding = "utf-8-sig") as reader:
                 lines = [line.strip() for line in reader.readlines()]
 
                 # 格式字段的数量
@@ -54,7 +55,7 @@ class ASS(Base):
                     if line == "[Events]":
                         in_event = True
                     # 在事件块中寻找格式字段
-                    if in_event == True and line.startswith("Format:"):
+                    if in_event and line.startswith("Format:"):
                         format_field_num = len(line.split(",")) - 1
                         break
 
@@ -69,7 +70,7 @@ class ASS(Base):
                             "dst": content.replace("\\N", "\n"),
                             "extra_field": extra_field,
                             "row": len(items),
-                            "file_type": CacheItem.FileType.ASS,
+                            "file_type": FileType.ASS,
                             "file_path": rel_path,
                         })
                     )

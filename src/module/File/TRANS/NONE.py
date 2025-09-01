@@ -1,9 +1,10 @@
-from src.base.Base import Base
-from src.module.Cache.CacheItem import CacheItem
+from src.base.Base import TextType, TranslationStatus
 
-class NONE():
+# from src.module.Cache.CacheItem import CacheItem
 
-    TEXT_TYPE: str = CacheItem.TextType.NONE
+class NONE:
+
+    TEXT_TYPE: str = TextType.NONE
 
     BLACKLIST_EXT: tuple[str] = (
         ".mp3", ".wav", ".ogg", "mid",
@@ -34,32 +35,32 @@ class NONE():
 
         # 如果数据为空，则跳过
         if src == "":
-            status: str = Base.TranslationStatus.EXCLUDED
+            status: str = TranslationStatus.EXCLUDED
             skip_internal_filter: bool = False
         # 如果包含 水蓝色 标签，则翻译
         elif any(v == "aqua" for v in tag):
-            status: str = Base.TranslationStatus.UNTRANSLATED
+            status: str = TranslationStatus.UNTRANSLATED
             skip_internal_filter: bool = True
         # 如果 第一列、第二列 都有文本，则跳过
         elif dst != "" and src != dst:
-            status: str = Base.TranslationStatus.TRANSLATED_IN_PAST
+            status: str = TranslationStatus.TRANSLATED_IN_PAST
             skip_internal_filter: bool = False
         else:
             block = self.filter(src, path, tag, context)
             skip_internal_filter: bool = False
 
             # 如果全部数据需要不需要过滤，则移除 red blue gold 标签
-            if all(v == False for v in block):
+            if all(not v for v in block):
                 tag: list[str] = [v for v in tag if v not in ("red", "blue", "gold")]
             # 如果任意数据需要过滤，且不包含 red blue gold 标签，则添加 gold 标签
-            elif any(v == True for v in block) and not any(v in ("red", "blue", "gold") for v in tag):
+            elif any(v for v in block) and not any(v in ("red", "blue", "gold") for v in tag):
                 tag: list[str] = tag + ["gold"]
 
             # 如果不需要过滤的数据，则翻译，否则排除
-            if any(v == False for v in block):
-                status: str = Base.TranslationStatus.UNTRANSLATED
+            if any(not v for v in block):
+                status: str = TranslationStatus.UNTRANSLATED
             else:
-                status: str = Base.TranslationStatus.EXCLUDED
+                status: str = TranslationStatus.EXCLUDED
 
         return src, dst, tag, status, skip_internal_filter
 
@@ -98,6 +99,6 @@ class NONE():
 
                 # 填充数据
                 parameter[i]["contextStr"] = context[i]
-                parameter[i]["translation"] = src if v == True else ""
+                parameter[i]["translation"] = src if v else ""
 
         return parameter

@@ -5,8 +5,8 @@ import torch
 from transformers import pipeline
 from transformers.models.modernbert.configuration_modernbert import ModernBertConfig
 from transformers.models.modernbert.modeling_modernbert import ModernBertForTokenClassification
-from transformers.tokenization_utils_fast import PreTrainedTokenizerFast
 from transformers.pipelines.token_classification import TokenClassificationPipeline
+from transformers.tokenization_utils_fast import PreTrainedTokenizerFast
 
 from src.module.LogManager import LogManager
 

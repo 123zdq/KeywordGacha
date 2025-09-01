@@ -1,20 +1,20 @@
-import re
 import asyncio
+import re
 import threading
 import urllib.request
-from typing import Any
 from types import SimpleNamespace
+from typing import Any
 
-import pykakasi
 import json_repair as repair
-from openai import AsyncOpenAI
+import pykakasi
 from aiolimiter import AsyncLimiter
+from openai import AsyncOpenAI
 
-from src.base.BaseData import BaseData
+from module.Text import TextHelper
 from src.model.NER import NER
 from src.model.Word import Word
-from src.module.Text.TextHelper import TextHelper
 from src.module.LogManager import LogManager
+
 LogHelper = LogManager.get()
 
 
@@ -30,7 +30,7 @@ def convert_request_json_from_vllm_to_llamacpp_inline(request_json : dict[str,An
 class LLM:
 
     # 任务类型
-    class Type(BaseData):
+    class Type:
 
         API_TEST: int = 100                  # 语义分析
         SURFACE_ANALYSIS: int = 200          # 语义分析
@@ -94,19 +94,19 @@ class LLM:
     # 加载指令
     def load_prompt(self) -> None:
         try:
-            with open("resources/config/prompt/prompt_context_translate.txt", "r", encoding = "utf-8-sig") as reader:
+            with open("resources/config/prompt/prompt_context_translate.txt", encoding = "utf-8-sig") as reader:
                 self.prompt_context_translate = reader.read().strip()
         except Exception as e:
             LogHelper.error("加载配置文件时发生错误",e)
 
         try:
-            with open("resources/config/prompt/prompt_surface_analysis_with_translation.txt", "r", encoding = "utf-8-sig") as reader:
+            with open("resources/config/prompt/prompt_surface_analysis_with_translation.txt", encoding = "utf-8-sig") as reader:
                 self.prompt_surface_analysis_with_translation = reader.read().strip()
         except Exception as e:
             LogHelper.error("加载配置文件时发生错误",e)
 
         try:
-            with open("resources/config/prompt/prompt_surface_analysis_without_translation.txt", "r", encoding = "utf-8-sig") as reader:
+            with open("resources/config/prompt/prompt_surface_analysis_without_translation.txt", encoding = "utf-8-sig") as reader:
                 self.prompt_surface_analysis_without_translation = reader.read().strip()
         except Exception as e:
             LogHelper.error("加载配置文件时发生错误",e)
@@ -114,19 +114,19 @@ class LLM:
     # 加载配置文件
     def load_llm_config(self) -> None:
         try:
-            with open("resources/config/llm_config/api_test_config.json", "r", encoding = "utf-8-sig") as reader:
+            with open("resources/config/llm_config/api_test_config.json", encoding = "utf-8-sig") as reader:
                 self.api_test_config = repair.load(reader)
         except Exception as e:
             LogHelper.error("加载配置文件时发生错误",e)
 
         try:
-            with open("resources/config/llm_config/surface_analysis_config.json", "r", encoding = "utf-8-sig") as reader:
+            with open("resources/config/llm_config/surface_analysis_config.json", encoding = "utf-8-sig") as reader:
                 self.surface_analysis_config = repair.load(reader)
         except Exception as e:
             LogHelper.error("加载配置文件时发生错误",e)
 
         try:
-            with open("resources/config/llm_config/context_translate_config.json", "r", encoding = "utf-8-sig") as reader:
+            with open("resources/config/llm_config/context_translate_config.json", encoding = "utf-8-sig") as reader:
                 self.context_translate_config = repair.load(reader)
         except Exception as e:
             LogHelper.error("加载配置文件时发生错误",e)
@@ -226,8 +226,8 @@ class LLM:
                 success = False
 
                 # 对 llama.cpp 适配格式化输出请求
-                if self.Back_End_LLAMA_CPP == True:
-                    convert_request_json_from_vllm_to_llamacpp_inline(self.api_test_config) 
+                if self.Back_End_LLAMA_CPP:
+                    convert_request_json_from_vllm_to_llamacpp_inline(self.api_test_config)
 
                 error, usage, _, response_result, llm_request, llm_response = await self.do_request(
                     [
@@ -245,7 +245,7 @@ class LLM:
                 )
 
                 # 检查错误
-                if error != None:
+                if error is not None:
                     raise error
 
                 # 反序列化 JSON
@@ -271,8 +271,8 @@ class LLM:
                     x = [v for group in LLM.GROUP_MAPPING.values() for v in group]
                     y = [v for group in LLM.GROUP_MAPPING_BANNED.values() for v in group]
                     self.prompt_groups = x + y
-                    
-                    if self.Back_End_LLAMA_CPP == True:
+
+                    if self.Back_End_LLAMA_CPP:
                         convert_request_json_from_vllm_to_llamacpp_inline(self.surface_analysis_config)
                         request_json = self.surface_analysis_config["extra_body"]["response_format"]["schema"]
                     else:
@@ -304,7 +304,7 @@ class LLM:
                 )
 
                 # 检查错误
-                if error != None:
+                if error is not None:
                     raise error
 
                 # 反序列化 JSON
@@ -350,8 +350,8 @@ class LLM:
                         break
 
                 # 处理未命中目标类型的情况
-                if matched == False:
-                    if last_round == True:
+                if not matched:
+                    if last_round:
                         LogHelper.warning(f"[词义分析] 无法匹配的实体类型 - {word.surface} [green]->[/] {word.group} ...")
                         word.group = ""
                     else:
@@ -363,7 +363,7 @@ class LLM:
                 LogHelper.debug(f"llm_response - {llm_response}")
                 error = e
             finally:
-                if error == None:
+                if error is None:
                     with self.lock:
                         success.append(word)
                     LogHelper.info(f"[词义分析] 已完成 {len(success)} / {len(words)} ...")
@@ -415,7 +415,7 @@ class LLM:
                     retry
                 )
 
-                if error != None:
+                if error is not None:
                     raise error
 
                 context_translation = [line.strip() for line in response_result.splitlines() if line.strip() != ""]
@@ -429,7 +429,7 @@ class LLM:
                 LogHelper.debug(f"llm_response - {llm_response}")
                 error = e
             finally:
-                if error == None:
+                if error is None:
                     with self.lock:
                         success.append(word)
                     LogHelper.info(f"[参考文本翻译] 已完成 {len(success)} / {len(words)} ...")

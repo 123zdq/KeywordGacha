@@ -1,29 +1,29 @@
-import os
+import asyncio
 import copy
 import json
-import asyncio
+import os
+import sys
+from pathlib import Path
 from types import SimpleNamespace
 
-from pathlib import Path
-import sys
 # 将项目根目录添加到 Python 路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# import argparse
+import time
+
 from rich import box
-from rich.table import Table
 from rich.prompt import Prompt
+from rich.table import Table
 from rich.traceback import install
 
 from src.model.LLM import LLM
 from src.model.NER import NER
 from src.model.Word import Word
+from src.module.FileManager import FileManager
 from src.module.LogManager import LogManager
 from src.module.ProgressHelper import ProgressHelper
 from src.module.TestHelper import TestHelper
-from src.module.FileManager import FileManager
-
-# import argparse
-import time
 
 start_time = time.time()
 
@@ -320,17 +320,17 @@ def load_config() -> tuple[LLM, NER, FileManager, SimpleNamespace, str]:  # args
                 path = "resources/config/config_dev.json"
 
             # 读取配置文件
-            with open(path, "r", encoding="utf-8-sig") as reader:
+            with open(path, encoding="utf-8-sig") as reader:
                 for k, v in json.load(reader).items():
                     setattr(config, k, v[0])
 
             # 读取私有配置文件
-            with open("resources/config/config_private.json", "r", encoding="utf-8-sig") as reader:
+            with open("resources/config/config_private.json", encoding="utf-8-sig") as reader:
                 for k, v in json.load(reader).items():
                     setattr(config, k, v[0])
 
             # 读取版本号文件
-            with open("resources/version.txt", "r", encoding="utf-8-sig") as reader:
+            with open("resources/version.txt", encoding="utf-8-sig") as reader:
                 version = reader.read().strip()
         except Exception as e:
             LogHelper.error("配置文件读取失败 ...", e)

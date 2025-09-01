@@ -6,10 +6,9 @@ import tiktoken
 # import tiktoken_ext
 # from tiktoken_ext import openai_public
 
-from src.base.BaseData import BaseData
 
 
-class Word(BaseData):
+class Word:
 
     # 必须显式的引用这两个库，否则打包后会报错
     # tiktoken_ext

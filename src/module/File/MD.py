@@ -1,15 +1,17 @@
 import os
 import re
+from typing import Any
 
-from src.base.Base import Base
+from src.base.Base import FileType, TextType, TranslationStatus
 from src.module.Cache.CacheItem import CacheItem
 
-class MD(Base):
+
+class MD:
 
     # 添加图片匹配的正则表达式
     IMAGE_PATTERN = re.compile(r'!\[.*?\]\(.*?\)')
 
-    def __init__(self, config: dict) -> None:
+    def __init__(self, config: dict[str,Any]) -> None:
         super().__init__()
 
         # 初始化
@@ -31,7 +33,7 @@ class MD(Base):
                 rel_path = abs_path
 
             # 数据处理
-            with open(abs_path, "r", encoding = "utf-8-sig") as reader:
+            with open(abs_path, encoding = "utf-8-sig") as reader:
                 lines = [line.removesuffix("\n") for line in reader.readlines()]
                 in_code_block = False  # 跟踪是否在代码块内
 
@@ -47,10 +49,10 @@ class MD(Base):
                                 "src": line,
                                 "dst": line,
                                 "row": len(items),
-                                "file_type": CacheItem.FileType.MD,
+                                "file_type": FileType.MD,
                                 "file_path": rel_path,
-                                "text_type": CacheItem.TextType.MD,
-                                "status": Base.TranslationStatus.EXCLUDED,
+                                "text_type": TextType.MD,
+                                "status": TranslationStatus.EXCLUDED,
                             })
                         )
                     else:
@@ -59,9 +61,9 @@ class MD(Base):
                                 "src": line,
                                 "dst": line,
                                 "row": len(items),
-                                "file_type": CacheItem.FileType.MD,
+                                "file_type": FileType.MD,
                                 "file_path": rel_path,
-                                "text_type": CacheItem.TextType.MD,
+                                "text_type": TextType.MD,
                             })
                         )
 

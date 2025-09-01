@@ -3,7 +3,6 @@ from unicodedata import normalize as unicodedata_normalize
 
 
 class Normalizer:
-
     # 自定义规则
     CUSTOM_RULE: dict[str, str] = {}
 

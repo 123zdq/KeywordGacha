@@ -1,14 +1,15 @@
 import os
-import shutil
 
+# import shutil
 import openpyxl
 import openpyxl.styles
 import openpyxl.worksheet.worksheet
 
-from src.base.Base import Base
+from src.base.Base import FileType, TextType, TranslationStatus
 from src.module.Cache.CacheItem import CacheItem
 
-class WOLFXLSX(Base):
+
+class WOLFXLSX:
 
     BLACKLIST_EXT: tuple[str] = (
         ".mp3", ".wav", ".ogg", "mid",
@@ -81,10 +82,10 @@ class WOLFXLSX(Base):
                             "src": src,
                             "dst": dst,
                             "row": row,
-                            "file_type": CacheItem.FileType.WOLFXLSX,
+                            "file_type": FileType.WOLFXLSX,
                             "file_path": rel_path,
-                            "text_type": CacheItem.TextType.WOLF,
-                            "status": Base.TranslationStatus.EXCLUDED,
+                            "text_type": TextType.WOLF,
+                            "status": TranslationStatus.EXCLUDED,
                         })
                     )
                 elif dst != "" and src != dst:
@@ -93,10 +94,10 @@ class WOLFXLSX(Base):
                             "src": src,
                             "dst": dst,
                             "row": row,
-                            "file_type": CacheItem.FileType.WOLFXLSX,
+                            "file_type": FileType.WOLFXLSX,
                             "file_path": rel_path,
-                            "text_type": CacheItem.TextType.WOLF,
-                            "status": Base.TranslationStatus.TRANSLATED_IN_PAST,
+                            "text_type": TextType.WOLF,
+                            "status": TranslationStatus.TRANSLATED_IN_PAST,
                         })
                     )
                 else:
@@ -105,10 +106,10 @@ class WOLFXLSX(Base):
                             "src": src,
                             "dst": dst,
                             "row": row,
-                            "file_type": CacheItem.FileType.WOLFXLSX,
+                            "file_type": FileType.WOLFXLSX,
                             "file_path": rel_path,
-                            "text_type": CacheItem.TextType.WOLF,
-                            "status": Base.TranslationStatus.UNTRANSLATED,
+                            "text_type": TextType.WOLF,
+                            "status": TranslationStatus.UNTRANSLATED,
                         })
                     )
 

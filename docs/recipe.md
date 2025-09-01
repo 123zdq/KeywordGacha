@@ -15,12 +15,16 @@ cd KeywordGacha
 
 # 方式一：直接用 Python 运行
 
-## 0. 确保 uv 已经 [安装](https://docs.astral.sh/uv/getting-started/installation/#__tabbed_1_2)
+## 0. 确保 uv 已经 [一键安装](https://docs.astral.sh/uv/getting-started/installation/#__tabbed_1_2)
 
 ## 1. 配环境
 
 ```bash
-uv sync --extra cu129
+# 有Nvidia显卡
+uv sync --extra cu129 --no-dev
+
+# 没有Nvidia显卡
+uv sync --extra cpu --no-dev
 ```
 
 ## 2. 运行
@@ -34,10 +38,10 @@ uv run src/app.py
 > 不推荐这种方式，因为 Python 其实不太适合打包成 exe
 
 ```bash
-uv sync --extra cu129
+uv sync --extra cu129 --no-dev
 uv pip install pyinstaller
 uv run build_support/pyinstaller.py
-uv sync --extra cu129
+uv sync --extra cu129 --no-dev
 ```
 打包好的输出在 `dist/` 目录下
 
@@ -47,19 +51,20 @@ uv sync --extra cu129
 
 ## 仅 cpu
 
-如果你没有Nvidia显卡，建议把本文档中所有的 
+如果你没有Nvidia显卡，建议把本文档中所有的 `uv sync` 命令选项
 
-`uv sync --extra cu129` 
+`--extra cu129` 
 
-替换成 
+全部替换成 
 
-`uv sync --extra cpu` 
+`--extra cpu` 
 
 可以显著降低软件大小
 
 ## rocm 与 xpu
 
 暂无
+
 
 
 # 其它操作系统
@@ -89,15 +94,17 @@ export HTTPS_PROXY="http://192.168.6.6:6666"
 
 ## 关于 `uv sync` 命令
 
-`uv sync --extra cu129` 
+`uv sync --extra [cu129 | cpu] --no-dev` 
 
-本项目中该命令中的 `extra` 项不能省略
+`--extra` 项不能省略
 
-`sync` 的含义是根据 `pyproject.toml` 的配置来 **自动化地** 同步环境
+`--no-dev` 表示不安装仅开发时才需要的包，如 ruff，如果想改代码建议不带这项
+
+`sync` 顾名思义，其根据 `pyproject.toml` 的配置来 **自动化地同步** 环境
 
 > **不再需要** ：
 查找下载正确的 `Python` 版本并添加环境变量、在项目目录下手动新建 `.venv` 虚拟环境
 用 `pip install -r requirements.txt` 命令，运用自身智慧来解决各种依赖冲突的同时反复享受 `pip` 的迟钝速度
 用 `pip uninstall` 卸载一些不再需要的包 并留下 大量间接依赖残留 后，不得不删除整个环境，花时间重装以再次享受上述过程
 
-> 用 `uv pip install` 以 不修改 `pyproject.toml` 的方式 往环境安装一些包，例如 `pyinstaller`，打包完就可以移除掉它和它引入的所有依赖，依然是用 `uv sync --extra cu129` 以将环境精准地还原
+> 例子: 需要打包时就用 `uv pip install` 以 不修改 `pyproject.toml` 的方式往环境安装一些包如 `pyinstaller`，打包完就可以移除掉它和它引入的所有依赖，依然是用 `uv sync --extra cu129 --no-dev` 以将环境精准地还原

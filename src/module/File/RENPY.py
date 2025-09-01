@@ -1,10 +1,11 @@
 import os
 import re
 
-from src.base.Base import Base
+from src.base.Base import FileType, TextType, TranslationStatus
 from src.module.Cache.CacheItem import CacheItem
 
-class RENPY(Base):
+
+class RENPY:
 
     # # game/script8.rpy:16878
     # translate chinese arabialogoff_e5798d9a:
@@ -65,7 +66,7 @@ class RENPY(Base):
                 rel_path = abs_path
 
             # 数据处理
-            with open(abs_path, "r", encoding = "utf-8-sig") as reader:
+            with open(abs_path, encoding = "utf-8-sig") as reader:
                 lines = [line.rstrip() for line in reader.readlines()]
 
             for i, line in enumerate(lines):
@@ -73,13 +74,13 @@ class RENPY(Base):
                 is_content_line = line.startswith("    # ") or line.startswith("    old ")
 
                 # 不是内容行但找到匹配项目时，则直接跳过这一行
-                if is_content_line == False and len(results) > 0:
+                if not is_content_line and len(results) > 0:
                     continue
-                elif is_content_line == True and len(results) == 1:
+                elif is_content_line and len(results) == 1:
                     src = results[0].replace("\\n", "\n").replace("\\\"", "\"")
                     dst = self.find_dst(i + 1, line, lines)
                     name = None
-                elif is_content_line == True and len(results) >= 2:
+                elif is_content_line and len(results) >= 2:
                     src = results[1].replace("\\n", "\n").replace("\\\"", "\"")
                     dst = self.find_dst(i + 1, line, lines)
                     name = results[0]
@@ -98,10 +99,10 @@ class RENPY(Base):
                             "name_dst": name,
                             "extra_field": line,
                             "row": len(items),
-                            "file_type": CacheItem.FileType.RENPY,
+                            "file_type": FileType.RENPY,
                             "file_path": rel_path,
-                            "text_type": CacheItem.TextType.RENPY,
-                            "status": Base.TranslationStatus.EXCLUDED,
+                            "text_type": TextType.RENPY,
+                            "status": TranslationStatus.EXCLUDED,
                         })
                     )
                 elif dst != "" and src != dst:
@@ -113,10 +114,10 @@ class RENPY(Base):
                             "name_dst": name,
                             "extra_field": line,
                             "row": len(items),
-                            "file_type": CacheItem.FileType.RENPY,
+                            "file_type": FileType.RENPY,
                             "file_path": rel_path,
-                            "text_type": CacheItem.TextType.RENPY,
-                            "status": Base.TranslationStatus.TRANSLATED_IN_PAST,
+                            "text_type": TextType.RENPY,
+                            "status": TranslationStatus.TRANSLATED_IN_PAST,
                         })
                     )
                 else:
@@ -128,10 +129,10 @@ class RENPY(Base):
                             "name_dst": name,
                             "extra_field": line,
                             "row": len(items),
-                            "file_type": CacheItem.FileType.RENPY,
+                            "file_type": FileType.RENPY,
                             "file_path": rel_path,
-                            "text_type": CacheItem.TextType.RENPY,
-                            "status": Base.TranslationStatus.UNTRANSLATED,
+                            "text_type": TextType.RENPY,
+                            "status": TranslationStatus.UNTRANSLATED,
                         })
                     )
 

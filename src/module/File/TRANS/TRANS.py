@@ -1,16 +1,17 @@
-import os
-import json
 import itertools
+import json
+import os
 
-from src.base.Base import Base
+from src.base.Base import FileType, TranslationStatus
 from src.module.Cache.CacheItem import CacheItem
 from src.module.File.TRANS.KAG import KAG
 from src.module.File.TRANS.NONE import NONE
-from src.module.File.TRANS.WOLF import WOLF
 from src.module.File.TRANS.RENPY import RENPY
 from src.module.File.TRANS.RPGMAKER import RPGMAKER
+from src.module.File.TRANS.WOLF import WOLF
 
-class TRANS(Base):
+
+class TRANS:
 
     def __init__(self, config: dict) -> None:
         super().__init__()
@@ -30,7 +31,7 @@ class TRANS(Base):
             rel_path = os.path.relpath(abs_path, self.input_path)
 
             # 数据处理
-            with open(abs_path, "r", encoding = "utf-8-sig") as reader:
+            with open(abs_path, encoding = "utf-8-sig") as reader:
                 json_data = json.load(reader)
 
                 # 有效性校验
@@ -75,7 +76,7 @@ class TRANS(Base):
                                 },
                                 "tag": path,
                                 "row": len(items),
-                                "file_type": CacheItem.FileType.TRANS,
+                                "file_type": FileType.TRANS,
                                 "file_path": rel_path,
                                 "text_type": processor.TEXT_TYPE,
                                 "status": status,
@@ -85,13 +86,13 @@ class TRANS(Base):
 
             # 去重
             translation: dict[str, str] = {}
-            for item in [v for v in items if v.get_status() == Base.TranslationStatus.UNTRANSLATED]:
+            for item in [v for v in items if v.get_status() == TranslationStatus.UNTRANSLATED]:
                 src = item.get_src()
                 dst = item.get_dst()
                 if src not in translation:
                     translation[src] = dst
                 else:
-                    item.set_status(Base.TranslationStatus.DUPLICATED)
+                    item.set_status(TranslationStatus.DUPLICATED)
 
         return items
 

@@ -1,6 +1,7 @@
+from src.base.Base import TextType
 from src.module.File.TRANS.NONE import NONE
-from src.module.Cache.CacheItem import CacheItem
+
 
 class RENPY(NONE):
 
-    TEXT_TYPE: str = CacheItem.TextType.RENPY
+    TEXT_TYPE: str = TextType.RENPY

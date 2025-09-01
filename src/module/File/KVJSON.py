@@ -1,10 +1,11 @@
-import os
 import json
+import os
 
-from src.base.Base import Base
+from src.base.Base import FileType, TranslationStatus
 from src.module.Cache.CacheItem import CacheItem
 
-class KVJSON(Base):
+
+class KVJSON:
 
     # {
     #     "「あ・・」": "「あ・・」",
@@ -33,7 +34,7 @@ class KVJSON(Base):
                 rel_path = abs_path
 
             # 数据处理
-            with open(abs_path, "r", encoding = "utf-8-sig") as reader:
+            with open(abs_path, encoding = "utf-8-sig") as reader:
                 json_data: dict[str, str] = json.load(reader)
 
                 # 格式校验
@@ -47,36 +48,36 @@ class KVJSON(Base):
                         dst = v
                         if src == "":
                             items.append(
-                                CacheItem({
-                                    "src": src,
-                                    "dst": dst,
-                                    "row": len(items),
-                                    "file_type": CacheItem.FileType.KVJSON,
-                                    "file_path": rel_path,
-                                    "status": Base.TranslationStatus.EXCLUDED,
-                                })
+                                CacheItem(
+                                    src=src,
+                                    dst=dst,
+                                    row=len(items),
+                                    file_type=FileType.KVJSON,
+                                    file_path=rel_path,
+                                    status=TranslationStatus.EXCLUDED,
+                                )
                             )
                         elif dst != "" and src != dst:
                             items.append(
-                                CacheItem({
-                                    "src": src,
-                                    "dst": dst,
-                                    "row": len(items),
-                                    "file_type": CacheItem.FileType.KVJSON,
-                                    "file_path": rel_path,
-                                    "status": Base.TranslationStatus.TRANSLATED_IN_PAST,
-                                })
+                                CacheItem(
+                                    src=src,
+                                    dst=dst,
+                                    row=len(items),
+                                    file_type=FileType.KVJSON,
+                                    file_path=rel_path,
+                                    status=TranslationStatus.TRANSLATED_IN_PAST,
+                                )
                             )
                         else:
                             items.append(
-                                CacheItem({
-                                    "src": src,
-                                    "dst": dst,
-                                    "row": len(items),
-                                    "file_type": CacheItem.FileType.KVJSON,
-                                    "file_path": rel_path,
-                                    "status": Base.TranslationStatus.UNTRANSLATED,
-                                })
+                                CacheItem(
+                                    src=src,
+                                    dst=dst,
+                                    row=len(items),
+                                    file_type=FileType.KVJSON,
+                                    file_path=rel_path,
+                                    status=TranslationStatus.UNTRANSLATED,
+                                )
                             )
 
         return items

@@ -1,30 +1,30 @@
+import json
 import os
 import re
-import json
-import openpyxl
-import openpyxl.worksheet.worksheet
 from typing import Any
 
-from src.base.Base import Base
+import openpyxl
+import openpyxl.worksheet.worksheet
+
+from module.Text import CJK, JA, KO, Latin
+from src.base.Base import FileType, TranslationStatus
 from src.model.NER import NER
 from src.model.Word import Word
-from src.module.File.MD import MD
-from src.module.File.ASS import ASS
-from src.module.File.SRT import SRT
-from src.module.File.TXT import TXT
-from src.module.File.EPUB import EPUB
-from src.module.File.XLSX import XLSX
-from src.module.File.WOLFXLSX import WOLFXLSX
-from src.module.File.RENPY import RENPY
-from src.module.File.TRANS.TRANS import TRANS
-from src.module.File.KVJSON import KVJSON
-from src.module.File.MESSAGEJSON import MESSAGEJSON
-from src.module.Text.TextHelper import TextHelper
 from src.module.Cache.CacheItem import CacheItem
+from src.module.File.ASS import ASS
+from src.module.File.EPUB import EPUB
+from src.module.File.KVJSON import KVJSON
+from src.module.File.MD import MD
+from src.module.File.MESSAGEJSON import MESSAGEJSON
+from src.module.File.RENPY import RENPY
+from src.module.File.SRT import SRT
+from src.module.File.TRANS.TRANS import TRANS
+from src.module.File.TXT import TXT
+from src.module.File.WOLFXLSX import WOLFXLSX
+from src.module.File.XLSX import XLSX
 from src.module.LogManager import LogManager
 from src.module.Normalizer import Normalizer
 from src.module.XLSXHelper import XLSXHelper
-
 
 LogHelper = LogManager.get()
 
@@ -50,7 +50,7 @@ class FileManager:
         nicknames: dict[int, str] = {}
 
         if os.path.exists(path):
-            with open(path, "r", encoding="utf-8-sig") as reader:
+            with open(path, encoding="utf-8-sig") as reader:
                 for item in json.load(reader):
                     if isinstance(item, dict):
                         id = item.get("id", -1)
@@ -135,7 +135,7 @@ class FileManager:
             for v in items
             if (
                 v.get_src().strip() != ""
-                and (v.get_file_type() == CacheItem.FileType.TRANS or v.get_status() != Base.TranslationStatus.EXCLUDED)
+                and (v.get_file_type() == FileType.TRANS or v.get_status() != TranslationStatus.EXCLUDED)
             )
         ]
 
@@ -167,13 +167,13 @@ class FileManager:
                 if len(line) == 0:
                     continue
 
-                if language == NER.Language.ZH and not TextHelper.CJK.any(line):
+                if language == NER.Language.ZH and not CJK.any(line):
                     continue
-                elif language == NER.Language.EN and not TextHelper.Latin.any(line):
+                elif language == NER.Language.EN and not Latin.any(line):
                     continue
-                elif language == NER.Language.JA and not TextHelper.JA.any(line):
+                elif language == NER.Language.JA and not JA.any(line):
                     continue
-                elif language == NER.Language.KO and not TextHelper.KO.any(line):
+                elif language == NER.Language.KO and not KO.any(line):
                     continue
 
                 # 添加结果

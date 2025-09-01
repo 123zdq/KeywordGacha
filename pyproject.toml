@@ -57,3 +57,19 @@ explicit = true
 name = "pytorch-cpu"
 url = "https://download.pytorch.org/whl/cpu"
 explicit = true
+
+[dependency-groups]
+dev = [
+    "ruff>=0.12.11",
+]
+
+[tool.ruff]
+line-length = 144  # 代码最大行宽
+select = [         # 选择的规则
+    "F",
+    "E",
+    "W",
+    "UP",
+    "I",
+]
+# ignore = ["F401"]  # 忽略的规则

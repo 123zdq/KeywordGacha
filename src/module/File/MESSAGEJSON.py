@@ -1,10 +1,11 @@
-import os
 import json
+import os
 
-from src.base.Base import Base
+from src.base.Base import FileType, TextType
 from src.module.Cache.CacheItem import CacheItem
 
-class MESSAGEJSON(Base):
+
+class MESSAGEJSON:
 
     # [
     #     {
@@ -52,7 +53,7 @@ class MESSAGEJSON(Base):
                 rel_path = abs_path
 
             # 数据处理
-            with open(abs_path, "r", encoding = "utf-8-sig") as reader:
+            with open(abs_path, encoding = "utf-8-sig") as reader:
                 json_data: list[dict[str, dict]] = json.load(reader)
 
                 # 格式校验
@@ -76,16 +77,16 @@ class MESSAGEJSON(Base):
 
                     # 添加数据
                     items.append(
-                        CacheItem({
-                            "src": entry_message,
-                            "dst": entry_message,
-                            "name_src": name,
-                            "name_dst": name,
-                            "row": len(items),
-                            "file_type": CacheItem.FileType.MESSAGEJSON,
-                            "file_path": rel_path,
-                            "text_type": CacheItem.TextType.KAG,
-                        })
+                        CacheItem(
+                            src=entry_message,
+                            dst=entry_message,
+                            name_src=name,
+                            name_dst=name,
+                            row=len(items),
+                            file_type=FileType.MESSAGEJSON,
+                            file_path=rel_path,
+                            text_type=TextType.KAG,
+                        )
                     )
 
         return items

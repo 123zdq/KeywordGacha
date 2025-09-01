@@ -3,19 +3,16 @@ import json
 import os
 import re
 
-
 from pecab import PeCab
 from sudachipy import Dictionary
 
-
+from module.Text import CJK, JA, KO, Latin, TextHelper
+from src.model.kg_ner_model import NER_SERVER
 from src.model.Word import Word
-from src.module.Text.TextHelper import TextHelper
 from src.module.LogManager import LogManager
+from src.module.ProgressHelper import ProgressHelper
 
 LogHelper = LogManager.get()
-from src.module.ProgressHelper import ProgressHelper
-from src.model.kg_ner_model import NER_SERVER
-
 
 class NER:
     # 语言模式
@@ -158,9 +155,9 @@ class NER:
         try:
             for entry in os.scandir("resources/config/blacklist"):
                 if entry.is_file() and entry.name.endswith(".json"):
-                    with open(entry.path, "r", encoding="utf-8-sig") as reader:
+                    with open(entry.path, encoding="utf-8-sig") as reader:
                         for v in json.load(reader):
-                            if v.get("srt") != None:
+                            if v.get("srt") is not None:
                                 cls.BLACKLIST.add(v.get("srt"))
         except Exception as e:
             LogHelper.error("加载NER黑名单配置文件时发生错误", e)
@@ -248,7 +245,7 @@ class NER:
                 continue
 
             # 按语言验证词语
-            if cls.verify_by_language(surface, language) == False:
+            if not cls.verify_by_language(surface, language):
                 continue
 
             # 根据名词表对词语进行修正
@@ -321,16 +318,16 @@ class NER:
     @classmethod
     def strip_by_language(cls, text: str, language: int) -> str:
         if language == cls.Language.ZH:
-            return TextHelper.CJK.strip_non_target(text).strip("的")
+            return CJK.strip_non_target(text).strip("的")
 
         if language == cls.Language.EN:
-            return TextHelper.Latin.strip_non_target(text).removeprefix("a ").removeprefix("an ").removeprefix("the ").strip()
+            return Latin.strip_non_target(text).removeprefix("a ").removeprefix("an ").removeprefix("the ").strip()
 
         if language == cls.Language.JA:
-            return TextHelper.JA.strip_non_target(text).strip("の")
+            return JA.strip_non_target(text).strip("の")
 
         if language == cls.Language.KO:
-            return TextHelper.KO.strip_non_target(text)
+            return KO.strip_non_target(text)
 
         return text
 
@@ -340,16 +337,16 @@ class NER:
         if text.lower() in cls.BLACKLIST:
             return False
         if language == cls.Language.ZH:
-            return TextHelper.CJK.any(text)
+            return CJK.any(text)
         if language == cls.Language.EN:
             # 首字母小写则False
             if not text[0].isupper():
                 return False
-            return TextHelper.Latin.any(text)
+            return Latin.any(text)
         if language == cls.Language.JA:
-            return TextHelper.JA.any(text)
+            return JA.any(text)
         if language == cls.Language.KO:
-            return TextHelper.KO.any(text)
+            return KO.any(text)
         return True
 
     # 查找 Token 所在的行
@@ -463,7 +460,7 @@ class NER:
 
         # 打印通过模式匹配抓取的角色实体
         LogHelper.print("")
-        LogHelper.info(f"[查找实体词语] 已完成 ...")
+        LogHelper.info("[查找实体词语] 已完成 ...")
         if len(seen) > 0:
             fake_name_mapping_ex = {v: k for k, v in fake_name_mapping.items()}
             surfaces = [fake_name_mapping_ex.get(surface, surface) for surface in seen]

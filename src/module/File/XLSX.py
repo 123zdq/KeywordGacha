@@ -3,10 +3,11 @@ import os
 import openpyxl
 import openpyxl.worksheet.worksheet
 
-from src.base.Base import Base
+from src.base.Base import FileType, TranslationStatus
 from src.module.Cache.CacheItem import CacheItem
 
-class XLSX(Base):
+
+class XLSX:
 
     def __init__(self, config: dict) -> None:
         super().__init__()
@@ -58,9 +59,9 @@ class XLSX(Base):
                             "src": src,
                             "dst": dst,
                             "row": row,
-                            "file_type": CacheItem.FileType.XLSX,
+                            "file_type": FileType.XLSX,
                             "file_path": rel_path,
-                            "status": Base.TranslationStatus.EXCLUDED,
+                            "status": TranslationStatus.EXCLUDED,
                         })
                     )
                 elif dst != "" and src != dst:
@@ -69,9 +70,9 @@ class XLSX(Base):
                             "src": src,
                             "dst": dst,
                             "row": row,
-                            "file_type": CacheItem.FileType.XLSX,
+                            "file_type": FileType.XLSX,
                             "file_path": rel_path,
-                            "status": Base.TranslationStatus.TRANSLATED_IN_PAST,
+                            "status": TranslationStatus.TRANSLATED_IN_PAST,
                         })
                     )
                 else:
@@ -80,9 +81,9 @@ class XLSX(Base):
                             "src": src,
                             "dst": dst,
                             "row": row,
-                            "file_type": CacheItem.FileType.XLSX,
+                            "file_type": FileType.XLSX,
                             "file_path": rel_path,
-                            "status": Base.TranslationStatus.UNTRANSLATED,
+                            "status": TranslationStatus.UNTRANSLATED,
                         })
                     )
 

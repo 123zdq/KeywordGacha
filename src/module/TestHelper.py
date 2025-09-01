@@ -2,6 +2,7 @@ import json
 
 from src.model.Word import Word
 
+
 class TestHelper:
 
     DATA = {

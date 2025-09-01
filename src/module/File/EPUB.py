@@ -1,14 +1,16 @@
 import os
-import shutil
+
+# import shutil
 import zipfile
 
 from bs4 import BeautifulSoup
 from lxml import etree
 
-from src.base.Base import Base
+from src.base.Base import FileType
 from src.module.Cache.CacheItem import CacheItem
 
-class EPUB(Base):
+
+class EPUB:
 
     # 显式引用以避免打包问题
     etree
@@ -54,7 +56,7 @@ class EPUB(Base):
                             bs = BeautifulSoup(reader.read().decode("utf-8-sig"), "html.parser")
                             for dom in bs.find_all(EPUB.EPUB_TAGS):
                                 # 跳过空标签或嵌套标签
-                                if dom.get_text().strip() == "" or dom.find(EPUB.EPUB_TAGS) != None:
+                                if dom.get_text().strip() == "" or dom.find(EPUB.EPUB_TAGS) is not None:
                                     continue
 
                                 # 添加数据
@@ -63,7 +65,7 @@ class EPUB(Base):
                                     "dst": dom.get_text(),
                                     "tag": path,
                                     "row": len(items),
-                                    "file_type": CacheItem.FileType.EPUB,
+                                    "file_type": FileType.EPUB,
                                     "file_path": rel_path,
                                 }))
                     elif path.lower().endswith(".ncx"):
@@ -79,7 +81,7 @@ class EPUB(Base):
                                     "dst": dom.get_text(),
                                     "tag": path,
                                     "row": len(items),
-                                    "file_type": CacheItem.FileType.EPUB,
+                                    "file_type": FileType.EPUB,
                                     "file_path": rel_path,
                                 }))
 

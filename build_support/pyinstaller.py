@@ -1,8 +1,8 @@
 import sys
 from pathlib import Path
-import PyInstaller.__main__
 from shutil import copytree, rmtree
 
+import PyInstaller.__main__
 
 # 获取 pip 安装的 root 路径（site-packages）
 site_packages = Path(sys.prefix) / "Lib" / "site-packages"
@@ -25,8 +25,8 @@ cmd = [
     "--onedir",  # Create a one-folder bundle containing an executable (default)
     # "--onefile",  # Create a one-file bundled executable
     "--noconfirm",  # Replace output directory (default: SPECPATH/dist/SPECNAME) without asking for confirmation
-    f"--distpath=" + odir,  # Where to put the bundled app (default: ./dist)
-    
+    "--distpath=" + odir,  # Where to put the bundled app (default: ./dist)
+
     # 对于 tiktoken pecab pykakasi 这3个库 务必加这几行避免报错：
     "--hidden-import=tiktoken_ext.openai_public",
     "--hidden-import=tiktoken_ext",

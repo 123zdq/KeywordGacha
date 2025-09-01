@@ -1,107 +1,78 @@
 import re
 import threading
+from dataclasses import dataclass, field
+from typing import Any, ClassVar
+
+from module.Text import TextBase
 
 # import tiktoken
 # import tiktoken_ext
 # from tiktoken_ext import openai_public
-
-from src.base.Base import Base
-from src.base.BaseData import BaseData
-from src.module.Text.TextBase import TextBase
+from src.base.Base import FileType, TextType, TranslationStatus
 
 
-class CacheItem(BaseData):
-
+@dataclass
+class CacheItem:
     # 必须显式的引用这两个库，否则打包后会报错
     # tiktoken_ext
     # openai_public
 
-    class FileType:
-
-        MD: str = "MD"                    # .md Markdown
-        TXT: str = "TXT"                  # .txt 文本文件
-        SRT: str = "SRT"                  # .srt 字幕文件
-        ASS: str = "ASS"                  # .ass 字幕文件
-        EPUB: str = "EPUB"                # .epub
-        XLSX: str = "XLSX"                # .xlsx Translator++ SExtractor
-        WOLFXLSX: str = "WOLFXLSX"        # .xlsx WOLF 官方翻译工具导出文件
-        RENPY: str = "RENPY"              # .rpy RenPy
-        TRANS: str = "TRANS"              # .trans Translator++
-        KVJSON: str = "KVJSON"            # .json MTool
-        MESSAGEJSON: str = "MESSAGEJSON"  # .json SExtractor
-
-    class TextType:
-
-        NONE: str = "NONE"                # 无类型，即纯文本
-        MD: str = "MD"                    # Markdown
-        KAG: str = "KAG"                  # KAG 游戏文本
-        WOLF: str = "WOLF"                # WOLF 游戏文本
-        RENPY: str = "RENPY"              # RENPY 游戏文本
-        RPGMAKER: str = "RPGMAKER"        # RPGMAKER 游戏文本
-
     # 缓存 Token 数量
-    TOKEN_COUNT_CACHE: dict[str, int] = {}
+    TOKEN_COUNT_CACHE: ClassVar[dict[str, int]] = {}
 
     # WOLF
-    REGEX_WOLF: tuple[re.Pattern[str],re.Pattern[str]] = (
-        re.compile(r"@\d+", flags=re.IGNORECASE),  # 角色 ID
+    REGEX_WOLF: ClassVar[tuple[re.Pattern[str], re.Pattern[str]]] = (
+        re.compile(r"@\d+", flags=re.IGNORECASE),                      # 角色 ID
         re.compile(r"\\[cus]db\[.+?:.+?:.+?\]", flags=re.IGNORECASE),  # 数据库变量 \cdb[0:1:2]
     )
 
     # RENPY
-    CJK_RANGE: str = rf"{TextBase.CJK_RANGE}{TextBase.HANGUL_RANGE}{TextBase.HIRAGANA_RANGE}{TextBase.KATAKANA_RANGE}"
-    REGEX_RENPY: tuple[re.Pattern[str],re.Pattern[str]] = (
+    CJK_RANGE: ClassVar[str] = rf"{TextBase.CJK_RANGE}{TextBase.HANGUL_RANGE}{TextBase.HIRAGANA_RANGE}{TextBase.KATAKANA_RANGE}"
+    REGEX_RENPY: ClassVar[tuple[re.Pattern[str], re.Pattern[str]]] = (
         re.compile(r"\{[^\{" + CJK_RANGE + r"]*?\}", flags=re.IGNORECASE),  # {w=2.3}
         re.compile(r"\[[^\[" + CJK_RANGE + r"]*?\]", flags=re.IGNORECASE),  # [renpy.version_only]
     )
 
     # RPGMaker
-    REGEX_RPGMaker: tuple[re.Pattern[str],re.Pattern[str],re.Pattern[str]] = (
-        re.compile(r"en\(.{0,8}[vs]\[\d+\].{0,16}\)", flags=re.IGNORECASE),  # en(!s[982]) en(v[982] >= 1)
-        re.compile(r"if\(.{0,8}[vs]\[\d+\].{0,16}\)", flags=re.IGNORECASE),  # if(!s[982]) if(v[982] >= 1)
+    REGEX_RPGMaker: ClassVar[tuple[re.Pattern[str], re.Pattern[str], re.Pattern[str]]] = (
+        re.compile(r"en\(.{0,8}[vs]\[\d+\].{0,16}\)", flags=re.IGNORECASE),          # en(!s[982]) en(v[982] >= 1)
+        re.compile(r"if\(.{0,8}[vs]\[\d+\].{0,16}\)", flags=re.IGNORECASE),          # if(!s[982]) if(v[982] >= 1)
         re.compile(r"[/\\][a-z]{1,8}[<\[][a-z\d]{0,16}[>\]]", flags=re.IGNORECASE),  # /c[xy12] \bc[xy12] \bc<xy12>
     )
 
-    def __init__(self, args: dict) -> None:
-        super().__init__()
+    # 默认值
+    src: str = ""                                         # 原文
+    dst: str = ""                                         # 译文
+    name_src: str | tuple[str] = None                     # 角色姓名原文
+    name_dst: str | tuple[str] = None                     # 角色姓名译文
+    extra_field: str | dict[str, Any] = ""                # 额外字段原文
+    tag: str = ""                                         # 标签
+    row: int = 0                                          # 行号
+    file_type: FileType = FileType.NONE                   # 原始文件的类型
+    file_path: str = ""                                   # 原始文件的相对路径
+    text_type: str = TextType.NONE                        # 文本的实际类型
+    status: str = TranslationStatus.UNTRANSLATED          # 翻译状态
+    retry_count: int = 0                                  # 重试次数，当前只有单独重试的时候才增加此计数
+    skip_internal_filter: bool = False                    # 跳过内置过滤器
 
-        # 默认值
-        self.src: str = ""  # 原文
-        self.dst: str = ""  # 译文
-        self.name_src: str | tuple[str] = None  # 角色姓名原文
-        self.name_dst: str | tuple[str] = None  # 角色姓名译文
-        self.extra_field: str | dict = ""  # 额外字段原文
-        self.tag: str = ""  # 标签
-        self.row: int = 0  # 行号
-        self.file_type: str = ""  # 原始文件的类型
-        self.file_path: str = ""  # 原始文件的相对路径
-        self.text_type: str = CacheItem.TextType.NONE  # 文本的实际类型
-        self.status: str = Base.TranslationStatus.UNTRANSLATED  # 翻译状态
-        self.retry_count: int = 0  # 重试次数，当前只有单独重试的时候才增加此计数
-        self.skip_internal_filter: bool = False  # 跳过内置过滤器
+    # 线程锁
+    lock: threading.Lock = field(init=False, repr=False, compare=False, default_factory=threading.Lock)
 
-        # 初始化
-        for k, v in args.items():
-            setattr(self, k, v)
-
+    def __post_init__(self) -> None:
         # 如果文件类型是 XLSX、TRANS、KVJSON、MESSAGEJSON，且没有文本类型，则判断实际的文本类型 WOLF / RPGMAKER / RENPY
-        if (
-            self.file_type in (CacheItem.FileType.XLSX, CacheItem.FileType.TRANS, CacheItem.FileType.KVJSON, CacheItem.FileType.MESSAGEJSON)
-            and self.text_type == CacheItem.TextType.NONE
-        ):
+        if self.file_type in (FileType.XLSX, FileType.TRANS, FileType.KVJSON, FileType.MESSAGEJSON) and self.text_type == TextType.NONE:
             if any(p.search(self.src) for p in CacheItem.REGEX_WOLF):
-                self.text_type = CacheItem.TextType.WOLF
+                self.text_type = TextType.WOLF
             elif any(p.search(self.src) for p in CacheItem.REGEX_RPGMaker):
-                self.text_type = CacheItem.TextType.RPGMAKER
+                self.text_type = TextType.RPGMAKER
             elif any(p.search(self.src) for p in CacheItem.REGEX_RENPY):
-                self.text_type = CacheItem.TextType.RENPY
-
-        # 线程锁
-        self.lock = threading.Lock()
+                self.text_type = TextType.RENPY
 
     # 获取原文
     def get_src(self) -> str:
         with self.lock:
+            # print(self.src)
+            # input()
             return self.src
 
     # 设置原文

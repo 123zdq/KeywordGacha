@@ -1,7 +1,7 @@
 import re
 from unicodedata import east_asian_width as unicodedata_east_asian_width
 
-from src.module.Text import TextBase
+from charset_normalizer import from_path as charset_normalizer_from_path
 
 
 class TextHelper:
@@ -24,7 +24,7 @@ class TextHelper:
     LATIN_PUNCTUATION_SET = {
         chr(char)
         for start, end in (
-            (0x0021, 0x002F),  # 基本拉丁标点（!"#$%&'()*+,-./）
+            (0x0021, 0x002F),  # 基本拉丁标点（!"#$%&'()*+,-./）  排除半角空格
             (0x003A, 0x0040),  # 基本拉丁标点（:;<=>?@）
             (0x005B, 0x0060),  # 基本拉丁标点（[\]^_`）
             (0x007B, 0x007E),  # 基本拉丁标点（{|}~）
@@ -45,23 +45,8 @@ class TextHelper:
 
     PUNCTUATION_SET = CJK_PUNCTUATION_SET | LATIN_PUNCTUATION_SET | SPECIAL_PUNCTUATION_SET
 
-    CJK = TextBase.CJK  # 汉字
-    Latin = TextBase.Latin  # 拉丁文
-    JA = TextBase.JA  # 日文 (Japanese)
-    KO = TextBase.KO  # 韩文 (Korean)
-    RU = TextBase.RU  # 俄文 (Russian)
-    AR = TextBase.AR  # 阿拉伯文 (Arabic)
-    DE = TextBase.DE  # 德文 (German)
-    FR = TextBase.FR  # 法文 (French)
-    PL = TextBase.PL  # 波兰文 (Polish)
-    ES = TextBase.ES  # 西班牙文 (Spanish)
-    IT = TextBase.IT  # 意大利文 (Italian)
-    PT = TextBase.PT  # 葡萄牙文 (Portuguese)
-    HU = TextBase.HU  # 匈牙利文 (Hungrarian)
-    TR = TextBase.TR  # 土耳其文 (Turkish)
-    TH = TextBase.TH  # 泰文 (Thai)
-    ID = TextBase.ID  # 印尼文 (Indonesian)
-    VI = TextBase.VI  # 越南文 (Vietnamese)
+    # 预编译正则表达式
+    PATTERN = re.compile(r"^\d+|\d+$")  # 匹配开头或结尾的阿拉伯数字
 
     # 判断一个字符是否是标点符号
     @classmethod
@@ -94,7 +79,7 @@ class TextHelper:
     def all_punctuation(cls, text: str) -> bool:
         return all(cls.is_punctuation(char) for char in text)
 
-    # 移除开头结尾的标点符号
+    # 移除开头结尾的标点符号  O(n)
     @classmethod
     def strip_punctuation(cls, text: str) -> str:
         text = text.strip()
@@ -110,10 +95,9 @@ class TextHelper:
         return text[start : end + 1]
 
     # 移除开头结尾的阿拉伯数字
-    # TODO: 正则表达式效率优化
-    @staticmethod
-    def strip_arabic_numerals(text: str) -> str:
-        return re.sub(r"^\d+|\d+$", "", text)
+    @classmethod
+    def strip_arabic_numerals(cls, text: str) -> str:
+        return cls.PATTERN.sub("", text)
 
     # 按标点符号分割字符串
     @classmethod
@@ -122,12 +106,12 @@ class TextHelper:
         current_segment: list[str] = []
         for char in text:
             if cls.is_punctuation(char) or (split_by_space and char in (chr(0x0020), chr(0x3000))):
-                if current_segment:
+                if current_segment != []:
                     result.append("".join(current_segment))
                     current_segment = []
             else:
                 current_segment.append(char)
-        if current_segment:
+        if current_segment != []:
             result.append("".join(current_segment))
         return result
 
@@ -154,3 +138,24 @@ class TextHelper:
 
         # 计算并返回相似度，完全一致是 1，完全不同是 0
         return intersection / union if union > 0 else 0.0
+
+    # 获取文件编码
+    @classmethod
+    def get_enconding(cls, path: str, add_sig_to_utf8: bool) -> str:
+        encoding: str = "utf-8"
+
+        try:
+            encoding = charset_normalizer_from_path(path).best().encoding
+        except Exception:
+            pass
+
+        # utf-8 是 ascii 的严格超集
+        # 所以如果检测到 ascii 可视为 utf-8
+        if encoding == "ascii":
+            encoding = "utf-8"
+
+        # 如果需要添加 BOM 标识
+        if add_sig_to_utf8 and (encoding == "utf_8" or encoding == "utf-8"):
+            encoding = "utf-8-sig"
+
+        return encoding
