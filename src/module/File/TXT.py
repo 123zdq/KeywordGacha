@@ -1,7 +1,7 @@
 import os
 
+from module.Item import Item
 from src.base.Base import FileType
-from src.module.Cache.CacheItem import CacheItem
 
 
 class TXT:
@@ -17,8 +17,8 @@ class TXT:
         self.target_language: str = config.get("target_language")
 
     # 读取
-    def read_from_path(self, abs_paths: list[str]) -> list[CacheItem]:
-        items:list[CacheItem] = []
+    def read_from_path(self, abs_paths: list[str]) -> list[Item]:
+        items:list[Item] = []
         for abs_path in abs_paths:
             # 获取相对路径
             try:
@@ -30,7 +30,7 @@ class TXT:
             with open(abs_path, encoding = "utf-8-sig") as reader:
                 for line in [line.removesuffix("\n") for line in reader.readlines()]:
                     items.append(
-                        CacheItem({
+                        Item({
                             "src": line,
                             "dst": line,
                             "row": len(items),

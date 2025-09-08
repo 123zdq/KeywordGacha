@@ -1,8 +1,6 @@
 import re
 from unicodedata import east_asian_width as unicodedata_east_asian_width
 
-from charset_normalizer import from_path as charset_normalizer_from_path
-
 
 class TextHelper:
 
@@ -138,24 +136,3 @@ class TextHelper:
 
         # 计算并返回相似度，完全一致是 1，完全不同是 0
         return intersection / union if union > 0 else 0.0
-
-    # 获取文件编码
-    @classmethod
-    def get_enconding(cls, path: str, add_sig_to_utf8: bool) -> str:
-        encoding: str = "utf-8"
-
-        try:
-            encoding = charset_normalizer_from_path(path).best().encoding
-        except Exception:
-            pass
-
-        # utf-8 是 ascii 的严格超集
-        # 所以如果检测到 ascii 可视为 utf-8
-        if encoding == "ascii":
-            encoding = "utf-8"
-
-        # 如果需要添加 BOM 标识
-        if add_sig_to_utf8 and (encoding == "utf_8" or encoding == "utf-8"):
-            encoding = "utf-8-sig"
-
-        return encoding

@@ -1,16 +1,18 @@
 import json
 import os
 import re
+from pathlib import Path
 from typing import Any
 
 import openpyxl
 import openpyxl.worksheet.worksheet
 
+from module.Item import Item
 from module.Text import CJK, JA, KO, Latin
-from src.base.Base import FileType, TranslationStatus
+from src.base.Base import TranslationStatus
 from src.model.NER import NER
 from src.model.Word import Word
-from src.module.Cache.CacheItem import CacheItem
+from src.module.Config import config
 from src.module.File.ASS import ASS
 from src.module.File.EPUB import EPUB
 from src.module.File.KVJSON import KVJSON
@@ -84,7 +86,7 @@ class FileManager:
     # TODO: 重新组织底层文件处理器
     @staticmethod
     def read_from_path(input_path: str) -> list[str]:
-        items: list[CacheItem] = []
+        items: list[Item] = []
         paths: list[str] = []
 
         # 检索输入路径下的所有文件
@@ -114,7 +116,9 @@ class FileManager:
             }
 
             # 伪数据
-            config: dict[str, str] = {"input_folder": "", "output_folder": "", "source_language": "", "target_language": ""}
+            # config: dict[str, str] = {"input_folder": "", "output_folder": "", "source_language": "", "target_language": ""}
+            cg=config()
+            cg.input_folder=Path(input_path)
 
             # 文件分发与处理
             for path in paths:
@@ -126,7 +130,8 @@ class FileManager:
                     LogHelper.debug(f"已跳过不支持的文件格式: {path}")
             for ext in handler_map.values():
                 for handler in ext[0]:
-                    items.extend(handler(config).read_from_path(ext[1]))
+                    for path in ext[1]:
+                        items.extend(handler(cg).read_from_path(Path(path)))
         except Exception as e:
             LogHelper.error("输入文件解析失败 ...", e)
 
@@ -135,7 +140,8 @@ class FileManager:
             for v in items
             if (
                 v.get_src().strip() != ""
-                and (v.get_file_type() == FileType.TRANS or v.get_status() != TranslationStatus.EXCLUDED)
+                # and (v.get_file_type() == FileType.TRANS or v.get_status() != TranslationStatus.EXCLUDED)
+                and (v.get_status() != TranslationStatus.EXCLUDED)
             )
         ]
 

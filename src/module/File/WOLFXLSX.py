@@ -5,8 +5,8 @@ import openpyxl
 import openpyxl.styles
 import openpyxl.worksheet.worksheet
 
+from module.Item import Item
 from src.base.Base import FileType, TextType, TranslationStatus
-from src.module.Cache.CacheItem import CacheItem
 
 
 class WOLFXLSX:
@@ -40,8 +40,8 @@ class WOLFXLSX:
         self.target_language: str = config.get("target_language")
 
     # 读取
-    def read_from_path(self, abs_paths: list[str]) -> list[CacheItem]:
-        items:list[CacheItem] = []
+    def read_from_path(self, abs_paths: list[str]) -> list[Item]:
+        items:list[Item] = []
         for abs_path in abs_paths:
             # 获取相对路径
             try:
@@ -78,7 +78,7 @@ class WOLFXLSX:
                     or self.get_fg_color_index(sheet, row, 6) not in WOLFXLSX.FILL_COLOR_WHITELIST
                 ):
                     items.append(
-                        CacheItem({
+                        Item({
                             "src": src,
                             "dst": dst,
                             "row": row,
@@ -90,7 +90,7 @@ class WOLFXLSX:
                     )
                 elif dst != "" and src != dst:
                     items.append(
-                        CacheItem({
+                        Item({
                             "src": src,
                             "dst": dst,
                             "row": row,
@@ -102,7 +102,7 @@ class WOLFXLSX:
                     )
                 else:
                     items.append(
-                        CacheItem({
+                        Item({
                             "src": src,
                             "dst": dst,
                             "row": row,

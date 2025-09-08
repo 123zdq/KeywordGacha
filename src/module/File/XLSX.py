@@ -3,8 +3,8 @@ import os
 import openpyxl
 import openpyxl.worksheet.worksheet
 
+from module.Item import Item
 from src.base.Base import FileType, TranslationStatus
-from src.module.Cache.CacheItem import CacheItem
 
 
 class XLSX:
@@ -20,8 +20,8 @@ class XLSX:
         self.target_language: str = config.get("target_language")
 
     # 读取
-    def read_from_path(self, abs_paths: list[str]) -> list[CacheItem]:
-        items:list[CacheItem] = []
+    def read_from_path(self, abs_paths: list[str]) -> list[Item]:
+        items:list[Item] = []
         for abs_path in abs_paths:
             # 获取相对路径
             try:
@@ -55,7 +55,7 @@ class XLSX:
 
                 if src == "":
                     items.append(
-                        CacheItem({
+                        Item({
                             "src": src,
                             "dst": dst,
                             "row": row,
@@ -66,7 +66,7 @@ class XLSX:
                     )
                 elif dst != "" and src != dst:
                     items.append(
-                        CacheItem({
+                        Item({
                             "src": src,
                             "dst": dst,
                             "row": row,
@@ -77,7 +77,7 @@ class XLSX:
                     )
                 else:
                     items.append(
-                        CacheItem({
+                        Item({
                             "src": src,
                             "dst": dst,
                             "row": row,

@@ -1,8 +1,8 @@
 import os
 import re
 
+from module.Item import Item
 from src.base.Base import FileType
-from src.module.Cache.CacheItem import CacheItem
 
 
 class SRT:
@@ -30,8 +30,8 @@ class SRT:
         self.target_language: str = config.get("target_language")
 
     # 读取
-    def read_from_path(self, abs_paths: list[str]) -> list[CacheItem]:
-        items:list[CacheItem] = []
+    def read_from_path(self, abs_paths: list[str]) -> list[Item]:
+        items:list[Item] = []
         for abs_path in abs_paths:
             # 获取相对路径
             try:
@@ -59,7 +59,7 @@ class SRT:
                     # 添加数据
                     if lines[-1] != "":
                         items.append(
-                            CacheItem({
+                            Item({
                                 "src": "\n".join(lines[2:]),            # 如有多行文本则用换行符拼接
                                 "dst": "\n".join(lines[2:]),            # 如有多行文本则用换行符拼接
                                 "extra_field": lines[1],

@@ -2,8 +2,8 @@ import itertools
 import json
 import os
 
+from module.Item import Item
 from src.base.Base import FileType, TranslationStatus
-from src.module.Cache.CacheItem import CacheItem
 from src.module.File.TRANS.KAG import KAG
 from src.module.File.TRANS.NONE import NONE
 from src.module.File.TRANS.RENPY import RENPY
@@ -24,8 +24,8 @@ class TRANS:
         self.target_language: str = config.get("target_language")
 
     # 读取
-    def read_from_path(self, abs_paths: list[str]) -> list[CacheItem]:
-        items: list[CacheItem] = []
+    def read_from_path(self, abs_paths: list[str]) -> list[Item]:
+        items: list[Item] = []
         for abs_path in abs_paths:
             # 获取相对路径
             rel_path = os.path.relpath(abs_path, self.input_path)
@@ -66,7 +66,7 @@ class TRANS:
                         # 检查并添加数据
                         src, dst, tag, status, skip_internal_filter = processor.check(path, data, tag, context)
                         items.append(
-                            CacheItem({
+                            Item({
                                 "src": src,
                                 "dst": dst,
                                 "extra_field": {

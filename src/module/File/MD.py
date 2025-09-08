@@ -1,70 +1,45 @@
-import os
 import re
-from typing import Any
+from pathlib import Path
 
+from module.Item import Item
 from src.base.Base import FileType, TextType, TranslationStatus
-from src.module.Cache.CacheItem import CacheItem
+from src.module.File.FileHandler import File
 
 
-class MD:
-
+class MD(File):
     # 添加图片匹配的正则表达式
-    IMAGE_PATTERN = re.compile(r'!\[.*?\]\(.*?\)')
-
-    def __init__(self, config: dict[str,Any]) -> None:
-        super().__init__()
-
-        # 初始化
-        self.config: dict = config
-        self.input_path: str = config.get("input_folder")
-        self.output_path: str = config.get("output_folder")
-        self.source_language: str = config.get("source_language")
-        self.target_language: str = config.get("target_language")
+    IMAGE_PATTERN = re.compile(r"!\[.*?\]\(.*?\)")
 
     # 读取
-    def read_from_path(self, abs_paths: list[str]) -> list[CacheItem]:
-        items:list[CacheItem] = []
+    def read_from_path(self, abs_path: Path) -> list[Item]:
+        self.file_type = FileType.MD
+        self.text_type = TextType.MD
+        self.file_path = abs_path.relative_to(self.input_path)  # 获取相对路径
 
-        for abs_path in abs_paths:
-            # 获取相对路径
-            try:
-                rel_path = os.path.relpath(abs_path, self.input_path)
-            except Exception:
-                rel_path = abs_path
+        # 数据处理
+        with abs_path.open(encoding=self.get_encoding(str(abs_path))) as reader:
+            lines = [line.removesuffix("\n") for line in reader.readlines()]
+            in_code_block = False  # 跟踪是否在代码块内
+            for i, line in enumerate(lines):
+                # 检查是否进入或退出代码块
+                if line.strip().startswith("```"):
+                    in_code_block = not in_code_block
+                self.items.append(
+                    Item(
+                        src=line,
+                        dst=line,
+                        row=i,
+                        status=TranslationStatus.EXCLUDED
+                        if (in_code_block or MD.IMAGE_PATTERN.search(line))  # 如果是图片行或在代码块内，设置状态为 EXCLUDED
+                        else TranslationStatus.UNTRANSLATED,
+                    )
+                )
 
-            # 数据处理
-            with open(abs_path, encoding = "utf-8-sig") as reader:
-                lines = [line.removesuffix("\n") for line in reader.readlines()]
-                in_code_block = False  # 跟踪是否在代码块内
+        return self.items
 
-                for line in lines:
-                    # 检查是否进入或退出代码块
-                    if line.strip().startswith("```"):
-                        in_code_block = not in_code_block
-
-                    # 如果是图片行或在代码块内，设置状态为 EXCLUDED
-                    if (MD.IMAGE_PATTERN.search(line) or in_code_block):
-                        items.append(
-                            CacheItem({
-                                "src": line,
-                                "dst": line,
-                                "row": len(items),
-                                "file_type": FileType.MD,
-                                "file_path": rel_path,
-                                "text_type": TextType.MD,
-                                "status": TranslationStatus.EXCLUDED,
-                            })
-                        )
-                    else:
-                        items.append(
-                            CacheItem({
-                                "src": line,
-                                "dst": line,
-                                "row": len(items),
-                                "file_type": FileType.MD,
-                                "file_path": rel_path,
-                                "text_type": TextType.MD,
-                            })
-                        )
-
-        return items
+    # 写入
+    def write_to_path(self, items: list[Item]) -> None:
+        abs_path = self.output_path / self.file_path
+        abs_path.parent.mkdir(parents=True, exist_ok=True)
+        with abs_path.open("w", encoding="utf-8") as writer:
+            writer.write("\n".join([item.get_dst() for item in items]))
